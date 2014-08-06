@@ -1,19 +1,14 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- get pixi.js to hide text when click on rect
-- get pixi.js to re-show text when click outside of rect?
-- get div to appear (in focus) when click rect
-- get div to disappear it loses focus (or when click outside of rect)
-- get working with multiple boxes!!
-- get everything to scale :O :OOOOOOO (randomly? on scroll?)
+- need to update linewrapping for pixi text
 - switch movement to using translate instead of absolute positioning?
 - change max-height to be height of...dragged rectangle?
 - use min-height in css too?...should set size of div based on dragged
   rectangle size I guess
-- can just transform entire document? not really, scales down canvas...
 - better to use...sprites? instead of graphic?
-- weird space at beginning of pixi text
+- get working with multiple boxes!!
+- get everything to scale :O :OOOOOOO (randomly? on scroll?)
 - add drawing :D
 - allow user to scroll to scale :O
 - and arrows to translate :D or drag!!
@@ -38,8 +33,16 @@ requestAnimFrame(animate);
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
+var rect_clicked = false; // UGLY HACK?
 // set callback for when it loses focus
 $(textbox).blur(restore_pixi_text);
+// make other things lose focus on click
+$(renderer.view).click(function(event) {
+  if (!rect_clicked) {
+    $(textbox).blur();
+  }
+  rect_clicked = false;
+});
 
 // add a rectangle
 var rect_graphics = new PIXI.Graphics();
@@ -62,8 +65,11 @@ rect_vel_y = -2;
 
 // and text
 var style =  {font: "14px Courier New", wordWrap: true};
-var text = new PIXI.Text("pixi text!\nline break   r gud\nyes", style);
+var text = new PIXI.Text("pixi text!\nline breaks   r gud\nyes", style);
 stage.addChild(text);
+
+// start with pixi text on div
+restore_pixi_text();
 
 function animate() {
   requestAnimFrame(animate);
@@ -81,8 +87,7 @@ function animate() {
 
   // move textbox to match rectangle
   textbox.style.top  = rect_y + 'px';
-  //textbox.style.left = rect_x + 'px';
-  //textbox.style.transform = 'scale('+((1+rect_y/HEIGHT)/4)+')';
+  textbox.style.left = rect_x + 'px';
   //textbox.style.transform = 'scale(.25)';
 
   // resize rectangle to match textbox
@@ -91,11 +96,9 @@ function animate() {
 
   // move text to match
   text.x = rect_x;
-  //text.y = rect_y;
+  text.y = rect_y;
   //text.width
-  //text.setText(html_to_text($(textbox).html()));
   //text.setStyle({});
-  //$(textbox).html(text_to_html(text.text));
   
   // render the stage
   renderer.render(stage);
@@ -126,7 +129,12 @@ function html_to_text(html) {
 
 function insert_div_text(mouseData) {
   // make div appear and make focused
-  
+  //$(textbox).show();
+  $(textbox).css('visibility', 'visible');
+  $(textbox).html(text_to_html(text.text));
+  $(textbox).focus();
+  // update textbox_showing
+  rect_clicked = true;
   // remove pixi text
   text.setText('');
 }
@@ -135,5 +143,7 @@ function restore_pixi_text(mouseData) {
   // replace pixi text
   text.setText(html_to_text($(textbox).html()));
   // hide div
+  $(textbox).css('visibility', 'hidden');
+  //$(textbox).hide();
 }
 
