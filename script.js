@@ -1,10 +1,6 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- bouncing gets stuck if change size while bouncing into bottom part...
-  maybe not worth fixing.
-- FIX TEXT PROBLEMS
-- get pixi.js text to copy what's in div
 - get pixi.js to hide text when click on rect
 - get pixi.js to re-show text when click outside of rect?
 - get div to appear (in focus) when click rect
@@ -16,6 +12,11 @@
 - use min-height in css too?...should set size of div based on dragged
   rectangle size I guess
 - can just transform entire document? not really, scales down canvas...
+- better to use...sprites? instead of graphic?
+- weird space at beginning of pixi text
+- add drawing :D
+- allow user to scroll to scale :O
+- and arrows to translate :D or drag!!
 */
 
 
@@ -24,26 +25,31 @@ var WIDTH  = 400,
 // stupid indentation...
 
 // create a new instance of a pixi stage
-var stage = new PIXI.Stage(0x66FF99);
+var interactive = true;
+var stage = new PIXI.Stage(0x66FF99, interactive);
 
 // create a renderer instance
 var renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT);
 
 // add the renderer view element to the DOM
-//document.body.appendChild(renderer.view);
-document.getElementById("container").appendChild(renderer.view);
+document.body.appendChild(renderer.view);
 
 requestAnimFrame(animate);
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
-var container = document.getElementById("container");
+// set callback for when it loses focus
+$(textbox).blur(restore_pixi_text);
 
 // add a rectangle
 var rect_graphics = new PIXI.Graphics();
 rect_graphics.beginFill(0x999999);
 rect_graphics.drawRect(0, 0, 50, 30);
 stage.addChild(rect_graphics);
+
+// add click callback
+rect_graphics.setInteractive(true);
+rect_graphics.click = insert_div_text;
 
 // rectangle's velocities...ugly to have global
 // will need to make into an object / 'class'
@@ -56,7 +62,7 @@ rect_vel_y = -2;
 
 // and text
 var style =  {font: "14px Courier New", wordWrap: true};
-var text = new PIXI.Text("pixi text!\nline break", style);
+var text = new PIXI.Text("pixi text!\nline break   r gud\nyes", style);
 stage.addChild(text);
 
 function animate() {
@@ -70,10 +76,12 @@ function animate() {
   rect_graphics.beginFill(0x999999);
   // how to do without redrawing everything? 
   rect_graphics.drawRect(rect_x, rect_y, rect_w, rect_h);
+  // uhhh
+  rect_graphics.hitArea = new PIXI.Rectangle(rect_x, rect_y, rect_w, rect_h);
 
   // move textbox to match rectangle
   textbox.style.top  = rect_y + 'px';
-  textbox.style.left = rect_x + 'px';
+  //textbox.style.left = rect_x + 'px';
   //textbox.style.transform = 'scale('+((1+rect_y/HEIGHT)/4)+')';
   //textbox.style.transform = 'scale(.25)';
 
@@ -83,16 +91,12 @@ function animate() {
 
   // move text to match
   text.x = rect_x;
-  //text.width
   //text.y = rect_y;
-  //console.log(html_to_text($("#textbox").html()));
-  text.setText(html_to_text($('#textbox').html()));
-  //text.setText(textbox.innerHTML.text());
-  //text.setText(textbox.textContent);
-  //text.setText(textbox.innerText);
-  //style.
+  //text.width
+  //text.setText(html_to_text($(textbox).html()));
   //text.setStyle({});
-
+  //$(textbox).html(text_to_html(text.text));
+  
   // render the stage
   renderer.render(stage);
 }
@@ -109,11 +113,27 @@ function bounce() {
 
 function text_to_html(text) {
   // convert newlines to <br> tags
-  // hmm...also need to do nonbreaking spaces?
-  return text.replace('\n', '<br></br>');
+  // also need to do nonbreaking spaces?
+  // data.replace(/ /g, '\u00a0');??
+  // or just do white-space: pre-wrap; in css
+  return text.replace(/\n/g,"<br />");
 }
 
 function html_to_text(html) {
   // convert <br> tags to newlines
   return html.replace(/\<br[\/]*\>/g, '\n').replace(/&nbsp;/g, ' ');
 }
+
+function insert_div_text(mouseData) {
+  // make div appear and make focused
+  
+  // remove pixi text
+  text.setText('');
+}
+
+function restore_pixi_text(mouseData) {
+  // replace pixi text
+  text.setText(html_to_text($(textbox).html()));
+  // hide div
+}
+
