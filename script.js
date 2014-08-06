@@ -1,19 +1,11 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- need to update linewrapping for pixi text
 - switch movement to using translate instead of absolute positioning?
-- change max-height to be height of...dragged rectangle?
-- use min-height in css too?...should set size of div based on dragged
-  rectangle size I guess
-- better to use...sprites? instead of graphic?
 - get working with multiple boxes!!
 - get everything to scale :O :OOOOOOO (randomly? on scroll?)
 - add drawing :D
-- allow user to scroll to scale :O
-- and arrows to translate :D or drag!!
-- allow to input some markdown, render to HTML to display!
-  use sprites for this? still not sure advantage...
+- and drag to translate :D!
 - get cursor to be in proper place when clicking to edit
 - add stuff for adding new rects, dragging, resizing, etc.!
 - figure out how to add hidden(?) text so can be indexed - add inside
@@ -21,7 +13,6 @@
 - seems like transform css doesn't work in chrome - need to use the chrome-
   specific ones?
 - could use cacheAsBitmap when moving around 'background' (including windows?)
-- see if newest version of html2canvas supports bullet points?
 - why does html_sprite always seem to have padding on top?
 */
 
