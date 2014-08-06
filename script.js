@@ -109,10 +109,11 @@ function bounce() {
 
 function text_to_html(text) {
   // convert newlines to <br> tags
+  // hmm...also need to do nonbreaking spaces?
+  return text.replace('\n', '<br></br>');
 }
 
 function html_to_text(html) {
   // convert <br> tags to newlines
-  return html.replace(/\<br[\/]*\>/g, "\n").replace("&nbsp;", " ");
-  //return html.replace(/<br\>/gi,"\n").replace(/(&lt;([^&gt;]+)&gt;)/gi, "").replace(/&nbsp/gi;," ")
+  return html.replace(/\<br[\/]*\>/g, '\n').replace(/&nbsp;/g, ' ');
 }
