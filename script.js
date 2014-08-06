@@ -27,7 +27,8 @@
 
 
 var WIDTH  = 400,
-    HEIGHT = 400;
+HEIGHT = 400;
+var WEIRD_PADDING = 11;
 
 // create a new instance of a pixi stage
 var interactive = true;
@@ -70,13 +71,10 @@ rect_graphics.click = insert_div_text;
 // will need to make into an object / 'class'
 rect_x = 10;
 rect_y = 10;
-rect_w = 50;
-rect_h = 30;
+rect_w = 70;
+rect_h = 70;
 rect_vel_x = -1;
 rect_vel_y = -2;
-
-// start with pixi text on div - think only works with canvas
-restore_pixi_text();
 
 // test dom rendering stuff
 var empty_canvas = document.createElement('canvas');
@@ -85,7 +83,9 @@ var html_sprite = new PIXI.Sprite(test_tex);
 html_sprite.position.x = 100;
 html_sprite.position.y = 100;
 stage.addChild(html_sprite);
-//render_textbox(70,70);
+
+// start with rendered text on div - think only works with canvas
+restore_pixi_text();
 
 
 function animate() {
@@ -115,7 +115,7 @@ function animate() {
 
   // move html sprite to match
   html_sprite.position.x = rect_x;
-  html_sprite.position.y = rect_y - 12; // why why why why why why why why 
+  html_sprite.position.y = rect_y - WEIRD_PADDING; // why why why why why why 
 
   // render the stage
   renderer.render(stage);
@@ -161,7 +161,7 @@ function render_textbox(text, width, height) {
     "font-size: 12px;"+
     "font-family: 'Courier New';"+
     "width:"+width+"px;"+
-    "height:"+height+"px;"+
+    "height:"+(height+WEIRD_PADDING)+"px;"+
     "overflow: hidden;"+
     "}</style>";
 
