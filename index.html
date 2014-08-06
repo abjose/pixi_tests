@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-    <title>pixi.js example 1</title>
+    <title>pixi tests</title>
     <style>
       body {
       margin: 0;
@@ -12,21 +12,30 @@
       position: absolute;
       top: 20px;
       left: 50px;
-      width: 100px;
+      width:  75px;
+      height: 75px;
       font-family: "Courier New";
-      font-size: 14px;
-      max-height: 100px;
-      overflow: auto;
-      word-wrap: break-word;
+      font-size: 12px;
+      background-color: transparent;
+      border: none;
+      }
+      #textbox:focus {
+      outline: none;
+      border: none;
       }
     </style>
     <script type="text/javascript" src="jquery.js" defer></script>
+    <script type="text/javascript" src="markdown.js" defer></script>
+    <script type="text/javascript" src="html2canvas.js" defer></script>
+    <script type="text/javascript" src="rasterizeHTML.allinone.js" defer></script>
     <script type="text/javascript" src="pixi.dev.js" defer></script>
     <script type="text/javascript" src="script.js" defer></script>
   </head>
   <body>
     
-    <div id="textbox" contenteditable="true">test</div>
+    <!--<div id="textbox" contenteditable="true">test</div>-->
+    <div id="canvasbox"></div>
+    <textarea id="textbox">Type **Markdown** here.</textarea>
   </body>
 </html>
   

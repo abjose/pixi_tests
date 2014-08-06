@@ -12,19 +12,31 @@
 - add drawing :D
 - allow user to scroll to scale :O
 - and arrows to translate :D or drag!!
+- allow to input some markdown, render to HTML to display!
+  use sprites for this? still not sure advantage...
+- get cursor to be in proper place when clicking to edit
+- add stuff for adding new rects, dragging, resizing, etc.!
+- figure out how to add hidden(?) text so can be indexed - add inside
+  canvas tag as fallback?
+- seems like transform css doesn't work in chrome - need to use the chrome-
+  specific ones?
+- could use cacheAsBitmap when moving around 'background' (including windows?)
+- see if newest version of html2canvas supports bullet points?
+- why does html_sprite always seem to have padding on top?
 */
 
 
 var WIDTH  = 400,
     HEIGHT = 400;
-// stupid indentation...
 
 // create a new instance of a pixi stage
 var interactive = true;
 var stage = new PIXI.Stage(0x66FF99, interactive);
 
 // create a renderer instance
-var renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT);
+//var renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT);
+//var renderer = new PIXI.WebGLRenderer(WIDTH, HEIGHT);
+var renderer = new PIXI.CanvasRenderer(WIDTH, HEIGHT);
 
 // add the renderer view element to the DOM
 document.body.appendChild(renderer.view);
@@ -63,13 +75,18 @@ rect_h = 30;
 rect_vel_x = -1;
 rect_vel_y = -2;
 
-// and text
-var style =  {font: "14px Courier New", wordWrap: true};
-var text = new PIXI.Text("pixi text!\nline breaks   r gud\nyes", style);
-stage.addChild(text);
-
-// start with pixi text on div
+// start with pixi text on div - think only works with canvas
 restore_pixi_text();
+
+// test dom rendering stuff
+var empty_canvas = document.createElement('canvas');
+var test_tex = PIXI.Texture.fromCanvas(empty_canvas);
+var html_sprite = new PIXI.Sprite(test_tex);
+html_sprite.position.x = 100;
+html_sprite.position.y = 100;
+stage.addChild(html_sprite);
+//render_textbox(70,70);
+
 
 function animate() {
   requestAnimFrame(animate);
@@ -79,6 +96,8 @@ function animate() {
   rect_x += rect_vel_x;
   rect_y += rect_vel_y;
   rect_graphics.clear()
+
+  // update graphics
   rect_graphics.beginFill(0x999999);
   // how to do without redrawing everything? 
   rect_graphics.drawRect(rect_x, rect_y, rect_w, rect_h);
@@ -94,12 +113,10 @@ function animate() {
   rect_w = textbox.offsetWidth;
   rect_h = textbox.offsetHeight;
 
-  // move text to match
-  text.x = rect_x;
-  text.y = rect_y;
-  //text.width
-  //text.setStyle({});
-  
+  // move html sprite to match
+  html_sprite.position.x = rect_x;
+  html_sprite.position.y = rect_y - 12; // why why why why why why why why 
+
   // render the stage
   renderer.render(stage);
 }
@@ -114,36 +131,49 @@ function bounce() {
   }
 }
 
-function text_to_html(text) {
-  // convert newlines to <br> tags
-  // also need to do nonbreaking spaces?
-  // data.replace(/ /g, '\u00a0');??
-  // or just do white-space: pre-wrap; in css
-  return text.replace(/\n/g,"<br />");
-}
-
-function html_to_text(html) {
-  // convert <br> tags to newlines
-  return html.replace(/\<br[\/]*\>/g, '\n').replace(/&nbsp;/g, ' ');
-}
-
 function insert_div_text(mouseData) {
   // make div appear and make focused
-  //$(textbox).show();
   $(textbox).css('visibility', 'visible');
-  $(textbox).html(text_to_html(text.text));
   $(textbox).focus();
   // update textbox_showing
   rect_clicked = true;
   // remove pixi text
-  text.setText('');
+  html_sprite.setTexture(PIXI.Texture.fromCanvas(empty_canvas)); 
 }
 
 function restore_pixi_text(mouseData) {
   // replace pixi text
-  text.setText(html_to_text($(textbox).html()));
+  render_textbox($(textbox).val(), rect_w, rect_h);
   // hide div
   $(textbox).css('visibility', 'hidden');
-  //$(textbox).hide();
 }
 
+function render_textbox(text, width, height) {
+  // dangerous??? couldn't someone just pass in arbitrary HTML?
+  // get html from markdown
+  var markdown_html = markdown.toHTML(text);
+
+  // make style sheet?
+  var render_style = "<style>body{"+
+    "margin: 0px;"+
+    "border: 0px solid;"+
+    "padding: 0px;"+
+    "font-size: 12px;"+
+    "font-family: 'Courier New';"+
+    "width:"+width+"px;"+
+    "height:"+height+"px;"+
+    "overflow: hidden;"+
+    "}</style>";
+
+  // combine stylesheet and html
+  markdown_html = render_style + markdown_html;
+  
+  // render and update sprite
+  rasterizeHTML.drawHTML(markdown_html)
+    .then(function success(renderResult) {
+      html_sprite.setTexture(PIXI.Texture.fromCanvas(renderResult.image)); 
+    }, function error(e) {
+      console.log('rendering error!');
+      console.log(e);
+    });
+}
