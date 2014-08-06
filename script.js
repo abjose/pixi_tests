@@ -3,13 +3,19 @@
 /* TODO
 - bouncing gets stuck if change size while bouncing into bottom part...
   maybe not worth fixing.
+- FIX TEXT PROBLEMS
 - get pixi.js text to copy what's in div
 - get pixi.js to hide text when click on rect
 - get pixi.js to re-show text when click outside of rect?
 - get div to appear (in focus) when click rect
 - get div to disappear it loses focus (or when click outside of rect)
 - get working with multiple boxes!!
-- get everything to scale :O :OOOOOOO
+- get everything to scale :O :OOOOOOO (randomly? on scroll?)
+- switch movement to using translate instead of absolute positioning?
+- change max-height to be height of...dragged rectangle?
+- use min-height in css too?...should set size of div based on dragged
+  rectangle size I guess
+- can just transform entire document? not really, scales down canvas...
 */
 
 
@@ -31,6 +37,7 @@ requestAnimFrame(animate);
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
+var container = document.getElementById("container");
 
 // add a rectangle
 var rect_graphics = new PIXI.Graphics();
@@ -48,8 +55,8 @@ rect_vel_x = -1;
 rect_vel_y = -2;
 
 // and text
-//var text = new PIXI.Text("pixi text!", {font:"50px Arial", fill:"red"});
-var text = new PIXI.Text("pixi text!", {font: "14px Courier New"});
+var style =  {font: "14px Courier New", wordWrap: true};
+var text = new PIXI.Text("pixi text!\nline break", style);
 stage.addChild(text);
 
 function animate() {
@@ -67,6 +74,8 @@ function animate() {
   // move textbox to match rectangle
   textbox.style.top  = rect_y + 'px';
   textbox.style.left = rect_x + 'px';
+  //textbox.style.transform = 'scale('+((1+rect_y/HEIGHT)/4)+')';
+  //textbox.style.transform = 'scale(.25)';
 
   // resize rectangle to match textbox
   rect_w = textbox.offsetWidth;
@@ -74,7 +83,15 @@ function animate() {
 
   // move text to match
   text.x = rect_x;
+  //text.width
   //text.y = rect_y;
+  //console.log(html_to_text($("#textbox").html()));
+  text.setText(html_to_text($('#textbox').html()));
+  //text.setText(textbox.innerHTML.text());
+  //text.setText(textbox.textContent);
+  //text.setText(textbox.innerText);
+  //style.
+  //text.setStyle({});
 
   // render the stage
   renderer.render(stage);
@@ -88,4 +105,14 @@ function bounce() {
   if (rect_y <= 0 || rect_y+rect_h >= HEIGHT) {
     rect_vel_y *= -1;
   }
+}
+
+function text_to_html(text) {
+  // convert newlines to <br> tags
+}
+
+function html_to_text(html) {
+  // convert <br> tags to newlines
+  return html.replace(/\<br[\/]*\>/g, "\n").replace("&nbsp;", " ");
+  //return html.replace(/<br\>/gi,"\n").replace(/(&lt;([^&gt;]+)&gt;)/gi, "").replace(/&nbsp/gi;," ")
 }
