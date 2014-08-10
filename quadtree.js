@@ -32,6 +32,8 @@ function QNode(...) {
 
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
+  // TODO: only insert if not there already
+  
   var obj = this.quadtree.id_to_obj[id];
 
   // verify the passed object should actually be added
@@ -61,9 +63,9 @@ QNode.prototype.remove = function() {
 QNode.prototype.refine = function() {
   // create children
   this.children[0] = QNode(...); // upper-left
-  this.children[0] = QNode(...); // upper-right
-  this.children[0] = QNode(...); // lower-left
-  this.children[0] = QNode(...); // lower-right
+  this.children[1] = QNode(...); // upper-right
+  this.children[2] = QNode(...); // lower-left
+  this.children[3] = QNode(...); // lower-right
 
   // populate with own ids
   this.children.map(
@@ -77,6 +79,9 @@ QNode.prototype.refine = function() {
 
 QNode.prototype.coarsen = function() {
   // take contents of children and EAT THEM UP
+  // get all ids belonging to children
+  var child_ids = this.query({x: this.x; y: this.y; w: this.w; h: this.h});
+  
 };
 
 // expand to accomodate object external to current quadtree
@@ -101,20 +106,28 @@ QNode.prototype.expand = function(id) {
 
 // return a list of objects located in the given region
 QNode.prototype.query = function(region) {
+  var results = [];
+  
   // don't return anything if outside query region
   if (!this.overlaps(region)) {
-    return [];
+    results = [];
   }
 
   // if inside query region and have no children, return objects
-  if (this.children.length === 0) {    
-    return this.ids;
+  else if (this.children.length === 0) {    
+    results = this.ids;
   }
 
   // otherwise delegate to children
-  return [].concat.apply([], this.children.map(
-    function(c) { return c.query(region); }
-  ));
+  else {
+    results = [].concat.apply([], this.children.map(
+      function(c) { return c.query(region); }
+    ));
+  }
+
+  // filter duplicates and things outside desired region
+  return remove_duplicates(filter_region(this.ids, region,
+					 this.quadtree.id_to_obj));
 };
 
 QNode.prototype.clear = function() {
@@ -123,7 +136,6 @@ QNode.prototype.clear = function() {
 
 // see if passed region overlaps this node
 QNode.prototype.overlaps = function(region) {
-  // TODO: better name
   return overlaps(this, region); // need to try both dirs?
 };
 
@@ -140,4 +152,15 @@ function overlaps(r1, r2) {
 // check if rectangle r contains point p
 function contains(r, p) {
   return p.x >= r.x && p.x < r.x+r.w && p.y >= r.y && p.y < r.y+r.h;
+};
+
+function remove_duplicates(array) {
+  // only works for arrays of primitives...also kinda gross.
+  var seen = {};
+  return array.filter(function(x) { return !seen[x] && (seen[x] = 1); });
+};
+
+// remove elements from array of ids that are external to given region
+function filter_region(array, region, objectify) {
+  return array.filter(function(id) { return contains(region, objectify(id)) } );
 };
