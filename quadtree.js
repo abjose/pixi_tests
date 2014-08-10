@@ -32,25 +32,17 @@ function QNode(...) {
 
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
-  // find where obj should belong
-  // also test children
-  // also need to test if external (and level 0) - need to insert self
-  // into larger quadtree
-  var c;
   var obj = this.quadtree.id_to_obj[id];
 
   if (this.overlaps(obj)) {
-    if (this.children.length === 0) {
+    if (this.children.length !== 0) {
+      this.children.map( function(c) { c.insert(id) } );
+    } else {
+      // no children, add to self
       this.ids.push[id];
-      
       // need to refine if have too many objects at this level
       if (this.ids.length > this.max_objects) {
 	this.refine();
-      }
-    } else {
-      // have children, pass on to them
-      for (c = 0; c < this.children.length; c++) {
-	this.children[c].insert(id);
       }
     }
   } else if (this.layer === 0) {
@@ -77,13 +69,13 @@ QNode.prototype.refine = function() {
   }
   
   for (i = 0; i < this.children.length; i++) {
-    for (j = 0; j < this.objects.length; j++) {
-      this.children[i].insert(this.objects[j]);
+    for (j = 0; j < this.ids.length; j++) {
+      this.children[i].insert(this.ids[j]);
     }
   }
 
   // TODO: probably need to remove specially to keep quadtree structures updated
-  this.objects = [];
+  this.ids = [];
 };
 
 QNode.prototype.coarsen = function() {
@@ -119,7 +111,7 @@ QNode.prototype.query = function(region) {
 
   // if inside query region and have no children, return objects
   if (this.children.length === 0) {    
-    return this.objects;
+    return this.ids;
   }
 
   // otherwise delegate to children
