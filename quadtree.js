@@ -4,6 +4,8 @@
 - is having id->object actually useful considering things are references?
 - should allow functions to take lists of things and/or multiple args
 - Allow parent to absorb child when 'expanding'
+- check to see if 'coarsen' leads to memory leaks
+- change id list to object?? so can treat like a set
 */
 
 function Quadtree(...) {
@@ -14,8 +16,12 @@ function Quadtree(...) {
 // attempt to insert passed object (with x,y,w,h,id properties)
 Quadtree.insert(...) {};
 
-// remove all elements in a given region OR with a given ID
-Quadtree.remove(...) {};
+// remove all elements in a given region
+Quadtree.remove_region(region) {};
+// remove all elements with a given id
+Quadtree.remove_object(id) {};
+
+
 
 // a node in the quadtree
 function QNode(...) {
@@ -55,9 +61,11 @@ QNode.prototype.insert = function(id) {
   }
 };
 
-// remove all elements in a given region OR with a given ID
-QNode.prototype.remove = function() {
-  // make sure to check about 'simplifying' tree
+// remove all elements in a given region
+QNode.prototype.remove = function(region) {
+  // TODO: better just to query then use id->obj->node map?!!
+
+  // to coarsen, just do a query and coarsen if few enough results?
 };
 
 QNode.prototype.refine = function() {
@@ -77,11 +85,12 @@ QNode.prototype.refine = function() {
   this.ids = [];
 };
 
+// take contents of children and EAT THEM UP
 QNode.prototype.coarsen = function() {
-  // take contents of children and EAT THEM UP
-  // get all ids belonging to children
-  var child_ids = this.query({x: this.x; y: this.y; w: this.w; h: this.h});
-  
+  // grab all ids belonging to children
+  self.ids = this.query({x: this.x; y: this.y; w: this.w; h: this.h});
+  // destroy children :(
+  this.children = []; // MEMORY LEAKS?
 };
 
 // expand to accomodate object external to current quadtree
