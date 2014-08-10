@@ -1,3 +1,4 @@
+"use strict";
 
 /*
 - just go ahead and assume have access to jquery!
@@ -10,6 +11,7 @@
 -- What else can move from node to quadtree?
 */
 
+/*
 function Quadtree(...) {
   // interface to actual quadtree as well as id->object and id->node maps
   this.root = ...;
@@ -137,32 +139,33 @@ QNode.prototype.clear = function() {
 QNode.prototype.overlaps = function(region) {
   return overlaps(this, region);
 };
-
-// see if rectangle r1 overlaps with rectangle r2
-// note: assumes rectangles are axis-aligned!
+*/
+// see if (AXIS-ALIGNED!) rectangles r1 and r2 overlap
 function overlaps(r1, r2) {
   // TODO: does this handle edge intersections consistently and efficiently?
   // calculate centers and half-dimensions
-  r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
-  r2c = {x: r2.x+r2.w/2, y: r2.y+r2.h/2};
+  var r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
+  var r2c = {x: r2.x+r2.w/2, y: r2.y+r2.h/2};
   
   // see if distance between centers is <= corresponding dimensions
-  dx = Math.abs(r1c.x - r2c.x);
-  dy = Math.abs(r1c.y - r2c.y);
-  x_sum = r1.w/2 + r2.w/2;
-  y_sum = r1.h/2 + r2.h/2;
-    
+  var dx = Math.abs(r1c.x - r2c.x);
+  var dy = Math.abs(r1c.y - r2c.y);
+  var x_sum = r1.w/2 + r2.w/2;
+  var y_sum = r1.h/2 + r2.h/2;
+
+  // overlapping if too close not to be
   return (dx <= x_sum) && (dy <= y_sum);
 };
 
 // return object of ids internal to passed region
-// TODO: make this more functional
 function filter_region(ids, region, objectify) {
-  var i = 0, obj = {}, keys = Object.keys(ids);
-  for (; i < keys.length; i++) {
-    if (overlaps(region, objectify(keys[i]))) {
-      obj[keys[i]] = true;
-    }
-  }
+  var i = 0, obj = {};
+  // filter out external objects by id
+  var keys = Object.keys(ids).filter( function(o) {
+    return overlaps(region, objectify(o));
+  });
+  
+  // then construct and return an id object from the filtered keys
+  for (; i < keys.length; i++) obj[keys[i]] = true;
   return obj;
 };
