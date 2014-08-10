@@ -1,11 +1,13 @@
 
 /*
+- just go ahead and assume have access to jquery!
 - DON'T DO single child stuff for now
 - is having id->object actually useful considering things are references?
 - should allow functions to take lists of things and/or multiple args
 - Allow parent to absorb child when 'expanding'
 - check to see if 'coarsen' leads to memory leaks
-- change id list to object?? so can treat like a set
+- Remove 'remove' from nodes if just using query. 
+-- What else can move from node to quadtree?
 */
 
 function Quadtree(...) {
@@ -33,13 +35,11 @@ function QNode(...) {
   this.parent   = parent;
   this.children = [];
   
-  this.ids = [];
+  this.ids = {};
 };  
 
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
-  // TODO: only insert if not there already
-  
   var obj = this.quadtree.id_to_obj[id];
 
   // verify the passed object should actually be added
@@ -49,9 +49,9 @@ QNode.prototype.insert = function(id) {
       this.children.map( function(c) { c.insert(id) } );
     } else {
       // no children, add to self
-      this.ids.push[id];
+      this.ids[id] = true;
       // need to refine if have too many objects at this level
-      if (this.ids.length > this.max_objects) {
+      if (Object.keys(this.ids).length > this.max_objects) { // optimize?
 	this.refine();
       }
     }
@@ -66,6 +66,7 @@ QNode.prototype.remove = function(region) {
   // TODO: better just to query then use id->obj->node map?!!
 
   // to coarsen, just do a query and coarsen if few enough results?
+  // make sure to remove keys from object instead of just setting to false
 };
 
 QNode.prototype.refine = function() {
@@ -98,8 +99,8 @@ QNode.prototype.expand = function(id) {
   // TODO: do some checks?
   // figure out what quadrant to expand towards
   var obj = this.quadtree.id_to_obj[id];
-  var self_center = {x: this.x+this.w/2; y: this.y+this.h/2};
-  var targ_center = {x: obj.x+obj.w/2;   y: obj.y+obj.h/2};
+  var self_center = {x: this.x+this.w/2, y: this.y+this.h/2};
+  var targ_center = {x: obj.x+obj.w/2,   y: obj.y+obj.h/2};
 
   // figure out relative orientation
   var targ_is_left  = targ_center.x < self_center.x;
@@ -115,28 +116,20 @@ QNode.prototype.expand = function(id) {
 
 // return a list of objects located in the given region
 QNode.prototype.query = function(region) {
-  var results = [];
-  
   // don't return anything if outside query region
   if (!this.overlaps(region)) {
-    results = [];
+    return {};
   }
 
   // if inside query region and have no children, return objects
-  else if (this.children.length === 0) {    
-    results = this.ids;
+  if (this.children.length === 0) {
+    return filter_region(this.ids, region, this.quadtree.id_to_obj);
   }
 
   // otherwise delegate to children
-  else {
-    results = [].concat.apply([], this.children.map(
-      function(c) { return c.query(region); }
-    ));
-  }
-
-  // filter duplicates and things outside desired region
-  return remove_duplicates(filter_region(this.ids, region,
-					 this.quadtree.id_to_obj));
+  $.extend.apply({}, this.children.map(
+    function(c) { return c.query(region); }
+  ));
 };
 
 QNode.prototype.clear = function() {
@@ -145,31 +138,39 @@ QNode.prototype.clear = function() {
 
 // see if passed region overlaps this node
 QNode.prototype.overlaps = function(region) {
-  return overlaps(this, region); // need to try both dirs?
+  return overlaps(this, region);
 };
 
-// check if rectangle r1 overlaps with rectangle r2
+// see if rectangle r1 overlaps with rectangle r2
+// note: assumes rectangles are axis-aligned!
 function overlaps(r1, r2) {
-  var corners = [{x: r2.x,      y: r2.y},
-		 {x: r2.x+r2.w, y: r2.y},
-		 {x: r2.x,      y: r2.y+r2.h},
-		 {x: r2.x+r2.w, y: r2.y+r2.h}];
+  // TODO: does this handle edge intersections consistently and efficiently?
+  // calculate centers and half-dimensions
+  r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
+  r2c = {x: r2.x+r2.w/2, y: r2.y+r2.h/2};
   
-  return corners.some(function(c) { contains(r1, c); });
+  // see if distance between centers is <= corresponding dimensions
+  dx = Math.abs(r1c.x - r2c.x);
+  dy = Math.abs(r1c.y - r2c.y);
+  x_sum = r1.w/2 + r2.w/2;
+  y_sum = r1.h/2 + r2.h/2;
+    
+  return (dx <= x_sum) && (dy <= y_sum);
 };
 
-// check if rectangle r contains point p
-function contains(r, p) {
-  return p.x >= r.x && p.x < r.x+r.w && p.y >= r.y && p.y < r.y+r.h;
+// return object of ids internal to passed region
+// TODO: make this more functional
+function filter_region(ids, region, objectify) {
+  var i = 0, obj = {}, keys = Object.keys(ids);
+  for (; i < keys.length; i++) {
+    if (overlaps(region, objectify(keys[i]))) {
+      obj[keys[i]] = true;
+    }
+  }
+  return obj;
 };
 
-function remove_duplicates(array) {
-  // only works for arrays of primitives...also kinda gross.
-  var seen = {};
-  return array.filter(function(x) { return !seen[x] && (seen[x] = 1); });
-};
-
-// remove elements from array of ids that are external to given region
-function filter_region(array, region, objectify) {
-  return array.filter(function(id) { return contains(region, objectify(id)) } );
+// combine two objects
+function extend(o1, o2) {
+  return $.extend({}, o1, o2);
 };
