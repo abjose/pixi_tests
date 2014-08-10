@@ -34,7 +34,9 @@ function QNode(...) {
 QNode.prototype.insert = function(id) {
   var obj = this.quadtree.id_to_obj[id];
 
+  // verify the passed object should actually be added
   if (this.overlaps(obj)) {
+    // if have children, pass on to them
     if (this.children.length !== 0) {
       this.children.map( function(c) { c.insert(id) } );
     } else {
@@ -51,29 +53,24 @@ QNode.prototype.insert = function(id) {
   }
 };
 
-QNode.prototype.insert_object = function() {
-
-};
-
 // remove all elements in a given region OR with a given ID
 QNode.prototype.remove = function() {
   // make sure to check about 'simplifying' tree
 };
 
 QNode.prototype.refine = function() {
-  // create children and populate with own objects
-  var i, j;
+  // create children
+  this.children[0] = QNode(...); // upper-left
+  this.children[0] = QNode(...); // upper-right
+  this.children[0] = QNode(...); // lower-left
+  this.children[0] = QNode(...); // lower-right
 
-  for (i = 0; i < 4; i++) {
-    this.children[i] = QNode(...);
-  }
-  
-  for (i = 0; i < this.children.length; i++) {
-    for (j = 0; j < this.ids.length; j++) {
-      this.children[i].insert(this.ids[j]);
-    }
-  }
+  // populate with own ids
+  this.children.map(
+    function(c) { this.ids.map( function(id) { c.insert(id); }) }
+  );
 
+  // clear own ids
   // TODO: probably need to remove specially to keep quadtree structures updated
   this.ids = [];
 };
