@@ -19,7 +19,12 @@ function Quadtree(...) {
 Quadtree.insert(...) {};
 
 // remove all elements in a given region
-Quadtree.remove_region(region) {};
+Quadtree.remove_region(region) {
+  // TODO: better just to query then use id->obj->node map?!!
+
+  // to coarsen, just do a query and coarsen if few enough results?
+  // make sure to remove keys from object instead of just setting to false
+};
 // remove all elements with a given id
 Quadtree.remove_object(id) {};
 
@@ -61,14 +66,6 @@ QNode.prototype.insert = function(id) {
   }
 };
 
-// remove all elements in a given region
-QNode.prototype.remove = function(region) {
-  // TODO: better just to query then use id->obj->node map?!!
-
-  // to coarsen, just do a query and coarsen if few enough results?
-  // make sure to remove keys from object instead of just setting to false
-};
-
 QNode.prototype.refine = function() {
   // create children
   this.children[0] = QNode(...); // upper-left
@@ -83,7 +80,7 @@ QNode.prototype.refine = function() {
 
   // clear own ids
   // TODO: probably need to remove specially to keep quadtree structures updated
-  this.ids = [];
+  this.ids = {};
 };
 
 // take contents of children and EAT THEM UP
@@ -127,7 +124,7 @@ QNode.prototype.query = function(region) {
   }
 
   // otherwise delegate to children
-  $.extend.apply({}, this.children.map(
+  return $.extend.apply({}, this.children.map(
     function(c) { return c.query(region); }
   ));
 };
@@ -168,9 +165,4 @@ function filter_region(ids, region, objectify) {
     }
   }
   return obj;
-};
-
-// combine two objects
-function extend(o1, o2) {
-  return $.extend({}, o1, o2);
 };
