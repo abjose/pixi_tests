@@ -1,25 +1,37 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- switch movement to using translate instead of absolute positioning?
-- get working with multiple boxes!!
-- get everything to scale :O :OOOOOOO (randomly? on scroll?)
-- add drawing :D
+- MAKE THINGS CLASSY
 - and drag to translate :D!
+- samer wants physics
+- allow adding new rects!
+- and scaling!
+- and...drawing?!
+- probably doesn't make sense to use overflow: hidden for everything - 
+  maybe once larger than a certain size should break? Or...never break?
+- switch movement to using translate instead of absolute positioning?
+- get everything to scale :O :OOOOOOO (randomly? on scroll?)
 - get cursor to be in proper place when clicking to edit
-- add stuff for adding new rects, dragging, resizing, etc.!
 - figure out how to add hidden(?) text so can be indexed - add inside
   canvas tag as fallback?
 - seems like transform css doesn't work in chrome - need to use the chrome-
   specific ones?
 - could use cacheAsBitmap when moving around 'background' (including windows?)
 - why does html_sprite always seem to have padding on top?
+- rasterizeHTML's ZOOM option seems like it might be useful!
+- make more 'reactive' - only animate when necessary?
+  http://www.html5gamedevs.com/topic/2866-call-renderer-only-when-needed/
+- consider changing again - canvas when not touching, to div when moused over
+  (or clicked/tapped once?) to textarea when clicked (or clicked/tapped twice).
+  This way easy to scroll through / follow links without reverting to plain-text
+- can just use iframe instead of div? or...could use iframe for displaying
+  other websites?
 */
 
 
-var WIDTH  = 400,
-HEIGHT = 400;
-var WEIRD_PADDING = 11;
+var WIDTH  = window.innerWidth,
+HEIGHT = window.innerHeight;
+var WEIRD_PADDING = 10;
 
 // create a new instance of a pixi stage
 var interactive = true;
@@ -52,20 +64,37 @@ $(renderer.view).click(function(event) {
 var rect_graphics = new PIXI.Graphics();
 rect_graphics.beginFill(0x999999);
 rect_graphics.drawRect(0, 0, 50, 30);
+rect_graphics.interactive = true;
+rect_graphics.buttonMode = true;
 stage.addChild(rect_graphics);
 
 // add click callback
+var mouse_x = 0,
+mouse_y = 0;
 rect_graphics.setInteractive(true);
-rect_graphics.click = insert_div_text;
+rect_graphics.click = insert_textbox;
+rect_graphics.mousedown = function(mouseData) {
+  dragging = true;
+};
+rect_graphics.mousemove = function(mouseData) {
+  mouse_x = mouseData.global.x;
+  mouse_y = mouseData.global.y;
+};
+rect_graphics.mouseup   = function(mouseData) {
+  dragging = false;
+};
 
 // rectangle's velocities...ugly to have global
 // will need to make into an object / 'class'
-rect_x = 10;
-rect_y = 10;
-rect_w = 70;
-rect_h = 70;
-rect_vel_x = -1;
-rect_vel_y = -2;
+var rect_x = 10;
+var rect_y = 10;
+var rect_w = 70;
+var rect_h = 70;
+var rect_vel_x = -1;
+var rect_vel_y = -2;
+
+// dragging stuff
+var dragging = false;
 
 // test dom rendering stuff
 var empty_canvas = document.createElement('canvas');
@@ -81,24 +110,20 @@ restore_pixi_text();
 
 function animate() {
   requestAnimFrame(animate);
-
+  
   // bounce canvas rectangle
-  bounce(); // will have to change this to bounce multiple rects.. 
-  rect_x += rect_vel_x;
-  rect_y += rect_vel_y;
-  rect_graphics.clear()
-
+  //bounce(); // will have to change this to bounce multiple rects..
+  if (dragging) {
+    rect_x = mouse_x;
+    rect_y = mouse_y;
+  }
+  
   // update graphics
+  rect_graphics.clear()
   rect_graphics.beginFill(0x999999);
   // how to do without redrawing everything? 
   rect_graphics.drawRect(rect_x, rect_y, rect_w, rect_h);
-  // uhhh
   rect_graphics.hitArea = new PIXI.Rectangle(rect_x, rect_y, rect_w, rect_h);
-
-  // move textbox to match rectangle
-  textbox.style.top  = rect_y + 'px';
-  textbox.style.left = rect_x + 'px';
-  //textbox.style.transform = 'scale(.25)';
 
   // resize rectangle to match textbox
   rect_w = textbox.offsetWidth;
@@ -107,7 +132,8 @@ function animate() {
   // move html sprite to match
   html_sprite.position.x = rect_x;
   html_sprite.position.y = rect_y - WEIRD_PADDING; // why why why why why why 
-
+  //html_sprite.scale.x = 25;
+  
   // render the stage
   renderer.render(stage);
 }
@@ -122,7 +148,11 @@ function bounce() {
   }
 }
 
-function insert_div_text(mouseData) {
+function insert_textbox(mouseData) {
+  // position appropriately
+  textbox.style.top  = rect_y + 'px';
+  textbox.style.left = rect_x + 'px';
+  //textbox.style.transform = 'scale(.25)';
   // make div appear and make focused
   $(textbox).css('visibility', 'visible');
   $(textbox).focus();
@@ -160,7 +190,7 @@ function render_textbox(text, width, height) {
   markdown_html = render_style + markdown_html;
   
   // render and update sprite
-  rasterizeHTML.drawHTML(markdown_html)
+  rasterizeHTML.drawHTML(markdown_html, {zoom: 1})
     .then(function success(renderResult) {
       html_sprite.setTexture(PIXI.Texture.fromCanvas(renderResult.image)); 
     }, function error(e) {
