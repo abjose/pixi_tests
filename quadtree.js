@@ -2,11 +2,13 @@
 /*
 - DON'T DO single child stuff for now
 - is having id->object actually useful considering things are references?
-- should allow functions to take lists of things
+- should allow functions to take lists of things and/or multiple args
+- Allow parent to absorb child when 'expanding'
 */
 
 function Quadtree(...) {
   // interface to actual quadtree as well as id->object and id->node maps
+  this.root = ...;
 };
 
 // attempt to insert passed object (with x,y,w,h,id properties)
@@ -35,8 +37,9 @@ QNode.prototype.insert = function(id) {
   // also need to test if external (and level 0) - need to insert self
   // into larger quadtree
   var c;
+  var obj = this.quadtree.id_to_obj[id];
 
-  if (this.overlaps(id)) {
+  if (this.overlaps(obj)) {
     if (this.children.length === 0) {
       this.ids.push[id];
       
@@ -52,10 +55,12 @@ QNode.prototype.insert = function(id) {
     }
   } else if (this.layer === 0) {
     // need to 'expand' to accomodate external point
-    // TODO
-    // change to have explicitly separate children? (so can set easier)
-    // then maybe just have convenience function to return list of children
+    this.expand(id);
   }
+};
+
+QNode.prototype.insert_object = function() {
+
 };
 
 // remove all elements in a given region OR with a given ID
@@ -83,20 +88,54 @@ QNode.prototype.refine = function() {
 
 QNode.prototype.coarsen = function() {
   // take contents of children and EAT THEM UP
-}
+};
 
-QNode.prototype.query = function() {
+// expand to accomodate object external to current quadtree
+QNode.prototype.expand = function(id) {
+  // TODO: do some checks?
+  // figure out what quadrant to expand towards
+  var obj = this.quadtree.id_to_obj[id];
+  var self_center = {x: this.x+this.w/2; y: this.y+this.h/2};
+  var targ_center = {x: obj.x+obj.w/2;   y: obj.y+obj.h/2};
 
+  // figure out relative orientation
+  var targ_is_left  = targ_center.x < self_center.x;
+  var targ_is_above = targ_center.y > self_center.y;
+  var goal_quadrant = targ_is_left + targ_is_above*2;
+  
+  // insert accordingly
+  this.quadtree.root = new Qnode(...); // MAKE SURE TO SET DIMS APPROPRIATELY
+  this.quadtree.root.refine();
+  this.quadtree.root.children[goal_quadrant] = this;
+  this.quadtree.root.insert(id);
+};
+
+// return a list of objects located in the given region
+QNode.prototype.query = function(region) {
+  // don't return anything if outside query region
+  if (!this.overlaps(region)) {
+    return [];
+  }
+
+  // if inside query region and have no children, return objects
+  if (this.children.length === 0) {    
+    return this.objects;
+  }
+
+  // otherwise delegate to children
+  return [].concat.apply([], this.children.map(
+    function(c) { return c.query(region); }
+  ));
 };
 
 QNode.prototype.clear = function() {
 
 };
 
-// see if passed id should be tracked by this node
-QNode.prototype.overlaps = function(id) {
+// see if passed region overlaps this node
+QNode.prototype.overlaps = function(region) {
   // TODO: better name
-  return overlaps(this, this.quadtree.id_to_obj[id]); // need to try both dirs?
+  return overlaps(this, region); // need to try both dirs?
 };
 
 // check if rectangle r1 overlaps with rectangle r2
@@ -112,4 +151,4 @@ function overlaps(r1, r2) {
 // check if rectangle r contains point p
 function contains(r, p) {
   return p.x >= r.x && p.x < r.x+r.w && p.y >= r.y && p.y < r.y+r.h;
-}
+};
