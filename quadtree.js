@@ -8,7 +8,6 @@
 - replace Object.keys(stuff) with other things? Maybe not that inefficient...
 - replace max_objects with refine_thresh and coarsen_thresh
 - test out coarsen vs. coarsen_topdown - maybe use topdown in remove_region?
-- MAKE SURE MODIFYING OBJ-TO-NODE IN ALL THE RIGHT PLACES
 - currently can violate max_depth via expand - worth fixing?
 - add nice way to visualize quadtree to help verify working? ideally can
   click to add points...
@@ -22,8 +21,8 @@ function Quadtree(args) {
   this.max_level   = args.max_level   || 10;
 
   // root of quadtree
-  this.root = QNode({x:args.x, y:args.y, w:args.w, h:args.h,
-		     level:0, parent:null, quadtree:this});
+  this.root = new QNode({x:args.x, y:args.y, w:args.w, h:args.h,
+			 level:0, parent:null, quadtree:this});
   // id-to-object mapping - is this even necessary?
   this.id_to_obj  = {};
   // id-to-node mapping - for each id, track referencing nodes (using an object)
@@ -32,8 +31,14 @@ function Quadtree(args) {
 
 // attempt to insert passed object (with x,y,w,h,id properties)
 Quadtree.prototype.insert = function(obj) {
+  // verify has stuff
+  if (!('x' in obj && 'x' in obj && 'w' in obj && 'h' in obj && 'id' in obj)) {
+    throw "The passed object lacks one or more of: x,y,w,h,id.";
+  }
   // first need to add to id-to-object map
-  this.id_to_obj[obj.id] = obj;
+  this.id_to_obj[obj.id]  = obj;
+  // make sure id_to_node has been initialized
+  this.id_to_node[obj.id] = this.id_to_node[obj.id] || {};
   // then insert into the root - will automatically update id_to_node
   this.root.insert(obj.id);
 };
@@ -79,7 +84,7 @@ function QNode(args) {
   this.x = args.x; this.y = args.y;
   this.w = args.w; this.h = args.h;
   this.quadtree = args.quadtree;
-  this.level    = level || 0;
+  this.level    = args.level || 0;
 
   // keep track of tree-y information
   this.parent   = args.parent;
@@ -271,11 +276,11 @@ function overlaps(r1, r2) {
 };
 
 // return object of ids internal to passed region
-function filter_region(ids, region, objectify) {
+function filter_region(ids, region, id_to_obj) {
   var i = 0, obj = {};
   // filter out external objects by id
   var keys = Object.keys(ids).filter( function(o) {
-    return overlaps(region, objectify(o));
+    return overlaps(region, id_to_obj[o]);
   });
   
   // then construct and return an id object from the filtered keys
@@ -286,5 +291,9 @@ function filter_region(ids, region, objectify) {
 // order list of objects with w (width) and h (height) fields by decreasing area
 // TODO: ARE YOU GOING TO USE THIS??
 function sort_by_area(nodes) {
-  return nodes.sort( function(a, b) { return b.w*b.h - a.w*a.h; });
+  return nodes.sort( function(a, b) {
+    if (!('w' in a && 'h' in a && 'w' in b && 'h' in b))
+      throw "Passed object doesn't have w or h.";
+    return b.w*b.h - a.w*a.h;
+  });
 }
