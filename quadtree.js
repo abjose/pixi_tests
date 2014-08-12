@@ -25,16 +25,16 @@ function Quadtree(args) {
   this.root = QNode({x:args.x, y:args.y, w:args.w, h:args.h,
 		     level:0, parent:null, quadtree:this});
   // id-to-object mapping - is this even necessary?
-  this.id_to_obj   = {};
-  // object-to-node mapping - for each object, track referencing nodes
-  this.obj_to_node = {};
+  this.id_to_obj  = {};
+  // id-to-node mapping - for each object, track referencing nodes
+  this.id_to_node = {};
 };
 
 // attempt to insert passed object (with x,y,w,h,id properties)
 Quadtree.prototype.insert = function(obj) {
   // first need to add to id-to-object map
   this.id_to_obj[obj.id] = obj;
-  // then insert into the root - will automatically update obj_to_node
+  // then insert into the root - will automatically update id_to_node
   this.root.insert(obj.id);
 };
 
@@ -46,7 +46,7 @@ Quadtree.prototype.query = function(region) {
 // remove all references to the object with the given id
 Quadtree.prototype.remove_object = function(id) {
   // grab affected nodes
-  var nodes = this.obj_to_node[this.id_to_obj[id]];
+  var nodes = this.id_to_node[id];
   // tell them all to remove the object and try to coarsen
   nodes.map( function(n) {
     delete n.ids[id];
@@ -89,9 +89,6 @@ function QNode(args) {
 
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
-  // TODO: NEED TO MODIFY obj_to_node!!!
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  
   var obj = this.quadtree.id_to_obj[id];
 
   // verify the passed object should actually be added
@@ -102,6 +99,7 @@ QNode.prototype.insert = function(id) {
     } else {
       // no children, add to self
       this.ids[id] = true;
+      this.quadtree.id_to_node[id] = true;
       // need to refine if have too many objects at this level
       if (Object.keys(this.ids).length > this.quadtree.max_objects &&
 	  this.level <= this.quadtree.max_level) {
@@ -134,7 +132,7 @@ QNode.prototype.refine = function() {
 
   // clear own ids
   // TODO: probably need to remove specially to keep quadtree structures updated
-  // like need to remove this node from obj_to_node
+  // like need to remove this node from id_to_node
   this.ids = {};
 };
 
