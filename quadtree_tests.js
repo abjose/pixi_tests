@@ -34,13 +34,61 @@ QUnit.test( "overlaps tests", function( assert ) {
 QUnit.test( "filter_region tests", function( assert ) {
   var r1 = {x:0, y:0, w:100, h:100};
   var r2 = {x:10, y:10, w:1, h:1};
-  var r3 = {x:20, y:-1000, w:1, h:2000};
-  var id_to_obj = {1:r1, 2:r2, 3:r3};
-  var ids = {1:true, 2:true, 3:true}
+  var r3 = {x:10, y:10, w:1, h:1};
+  var r4 = {x:10, y:10, w:1, h:1};
+  var r5 = {x:20, y:-1000, w:1, h:2000};
+  var r6 = {x:500, y:500, w:1, h:1};
+  var id_to_obj = {1:r1, 2:r2, 3:r3, 4:r4, 5:r5, 6:r6};
+  var ids = {1:true, 2:true, 3:true, 4:true, 5:true, 6:true};
   var objectify = function(key) { return id_to_obj[key] };
 
   assert.deepEqual( filter_region(ids, r1, objectify),
-		    {1:true, 2:true, 3:true} );
+		    {1:true, 2:true, 3:true, 4:true, 5:true} );
+
+  assert.deepEqual( filter_region(ids, r2, objectify),
+		    {1:true, 2:true, 3:true, 4:true} );
+
+  assert.deepEqual( filter_region(ids, r6, objectify),
+		    {6:true} );
+});
+
+
+/* test filter_region */
+QUnit.test( "filter_region adjacency tests", function( assert ) {
+  var r = {x:10, y:10, w:1, h:1};
+  // edges
+  var ra = {x:10, y:9,  w:1, h:1};
+  var rb = {x:10, y:11, w:1, h:1};
+  var rl = {x:9,  y:10, w:1, h:1};
+  var rr = {x:11, y:10, w:1, h:1};
+  // diagonals
+  var rtl = {x:9,  y:9,  w:1, h:1};
+  var rtr = {x:11, y:9,  w:1, h:1};
+  var rbl = {x:9,  y:11, w:1, h:1};
+  var rbr = {x:11, y:11, w:1, h:1};
+
+  var id_to_obj = {1:r,
+		   2:ra, 3:rb, 4:rl, 5:rr,
+		   6:rtl, 7:rtr, 8:rbl, 8:rbr};
+  var ids = {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true, 8:true};
+  var objectify = function(key) { return id_to_obj[key] };
+
+  assert.deepEqual( filter_region(ids, r, objectify),
+		    {1:true} );
+});
+
+/* test sort_by_area */
+QUnit.test( "sort_by_area tests", function( assert ) {
+  var r1 = {w:100, h:100};
+  var r2 = {w:1, h:1};
+  var r3 = {w:3, h:1};
+  var r4 = {w:2, h:1};
+  var r5 = {w:1, h:2000};
+
+  assert.deepEqual( sort_by_area([r1, r2, r3, r4, r5]),
+		    [r1, r5, r3, r4, r2] );
+
+  // test for error if one doesn't have w and h fields?
 });
 
 /*
