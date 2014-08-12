@@ -26,7 +26,7 @@ function Quadtree(args) {
 		     level:0, parent:null, quadtree:this});
   // id-to-object mapping - is this even necessary?
   this.id_to_obj  = {};
-  // id-to-node mapping - for each object, track referencing nodes
+  // id-to-node mapping - for each id, track referencing nodes (using an object)
   this.id_to_node = {};
 };
 
@@ -46,7 +46,7 @@ Quadtree.prototype.query = function(region) {
 // remove all references to the object with the given id
 Quadtree.prototype.remove_object = function(id) {
   // grab affected nodes
-  var nodes = this.id_to_node[id];
+  var nodes = Object.keys(this.id_to_node[id]);
   // tell them all to remove the object and try to coarsen
   nodes.map( function(n) {
     delete n.ids[id];
@@ -68,7 +68,9 @@ Quadtree.prototype.remove_region = function(region) {
 // delete all objects from the quadtree (leaving dimensions, etc. the same)
 Quadtree.prototype.clear = function() {
   this.root.children = []; // MEMORY LEAKS?!?!?!?!?!
-  this.root.ids = {};
+  this.root.ids   = {};
+  this.id_to_obj  = {};
+  this.id_to_node = {};
 };
 
 // a node in the quadtree
@@ -99,7 +101,7 @@ QNode.prototype.insert = function(id) {
     } else {
       // no children, add to self
       this.ids[id] = true;
-      this.quadtree.id_to_node[id] = true;
+      this.quadtree.id_to_node[id][this] = true;
       // need to refine if have too many objects at this level
       if (Object.keys(this.ids).length > this.quadtree.max_objects &&
 	  this.level <= this.quadtree.max_level) {
@@ -114,26 +116,22 @@ QNode.prototype.insert = function(id) {
 
 QNode.prototype.refine = function() {
   // create children
-  // TODO: MODIFY OBJ-TO-NODE
   var x=this.x, y=this.y, hw = this.w/2, hh = this.h/2, newlevel=this.level+1;
   this.children[0] = new QNode({x:x, y:y, w:hw, h:hh, level:newlevel,      //UL
-			    parent:this, quadtree:this.quadtree}); 
+				parent:this, quadtree:this.quadtree}); 
   this.children[1] = new QNode({x:x+hw, y:y, w:hw, h:hh, level:newlevel,   //UR
-			    parent:this, quadtree:this.quadtree});
+				parent:this, quadtree:this.quadtree});
   this.children[2] = new QNode({x:x, y:y+hh, w:hw, h:hh, level:newlevel,   //LL
-			    parent:this, quadtree:this.quadtree});
+				parent:this, quadtree:this.quadtree});
   this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel,//LR
-			    parent:this, quadtree:this.quadtree});
-
+				parent:this, quadtree:this.quadtree});
   // populate with own ids
   this.children.map(
     function(c) { this.ids.map( function(id) { c.insert(id); }) }
   );
-
+  
   // clear own ids
-  // TODO: probably need to remove specially to keep quadtree structures updated
-  // like need to remove this node from id_to_node
-  this.ids = {};
+  this.clear_ids();
 };
 
 // merge children into self (if necessary)
@@ -146,8 +144,8 @@ QNode.prototype.coarsen = function() {
     // do we need to coarsen?
     if (Object.keys(child_ids).length < this.quadtree.max_objects) {
       // subsume and destroy children
-      self.ids = child_ids;
-      this.children = []; // MEMORY LEAKS?
+      this.clear_children();
+      this.ids = child_ids;
       // tell parent that it should consider coarsening
       this.parent.coarsen();
     }
@@ -160,14 +158,14 @@ QNode.prototype.coarsen_topdown = function(region, filtered_ids) {
   if (this.overlaps(region)) {
     // do initial query if no ids passed
     filtered_ids = filtered_ids || this.query(region);
-    
+
     // filter passed ids to own region
     filtered_ids = filter_region(filtered_ids, region, this.quadtree.id_to_obj);
 
     // if few enough filtered ids, coarsen
     if (filtered_ids.length < this.quadtree.max_objects) {
       self.ids = filtered_ids;
-      this.children = []; // MEMORY LEAKS?
+      this.clear_children();
     } else if (this.children.length !== 0) {
       // if didn't coarsen, tell children to try (passing newly filtered ids)
       this.children.map(function(c) {c.coarsen_topdown(region, filtered_ids) });
@@ -194,12 +192,11 @@ QNode.prototype.expand = function(id) {
   // insert accordingly
   this.quadtree.root.inc_level();
   this.quadtree.root = new QNode({x:goal_x, y:goal_y, w:this.w*2, h:this.h*2,
-				  level:0, parent:null,
-				  quadtree:this.quadtree});
+				  level:0, parent:null,quadtree:this.quadtree});
   this.quadtree.root.refine();
   this.quadtree.root.children[goal_quadrant] = this; // memory leaks?
   this.quadtree.root.coarsen();
-  this.quadtree.root.insert(id);
+  this.quadtree.insert(id);
 };
 
 // return a list of objects located in the given region
@@ -231,6 +228,30 @@ QNode.prototype.inc_level = function() {
   this.children.map( function(c) { c.inc_level(); } );
 };
 
+// clear the ids from this node, updating the relevant datastructures
+QNode.prototype.clear_ids = function() {
+  // remove references to this node from id_to_node
+  this.ids.map(function(id) { delete this.quadtree.id_to_node[id][this]; });
+  // clear ids
+  this.ids = {};
+};
+
+// tell children to clear themselves
+QNode.prototype.clear_children = function() {
+  if (this.children.length !== 0) {
+    this.children.map( function(c) { c.clear(); } );
+  }
+  // remove refs to children
+  this.children = [];
+};
+
+// clear this node's ids and children
+QNode.prototype.clear = function() {
+  // TODO: memory leaks here???
+  this.clear_ids();
+  // tell children to clear
+  this.clear_children();
+};
 
 // see if (AXIS-ALIGNED!) rectangles r1 and r2 overlap
 function overlaps(r1, r2) {
