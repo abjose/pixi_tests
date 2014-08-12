@@ -40,15 +40,14 @@ QUnit.test( "filter_region tests", function( assert ) {
   var r6 = {x:500, y:500, w:1, h:1};
   var id_to_obj = {1:r1, 2:r2, 3:r3, 4:r4, 5:r5, 6:r6};
   var ids = {1:true, 2:true, 3:true, 4:true, 5:true, 6:true};
-  var objectify = function(key) { return id_to_obj[key] };
 
-  assert.deepEqual( filter_region(ids, r1, objectify),
+  assert.deepEqual( filter_region(ids, r1, id_to_obj),
 		    {1:true, 2:true, 3:true, 4:true, 5:true} );
 
-  assert.deepEqual( filter_region(ids, r2, objectify),
+  assert.deepEqual( filter_region(ids, r2, id_to_obj),
 		    {1:true, 2:true, 3:true, 4:true} );
 
-  assert.deepEqual( filter_region(ids, r6, objectify),
+  assert.deepEqual( filter_region(ids, r6, id_to_obj),
 		    {6:true} );
 });
 
@@ -71,9 +70,8 @@ QUnit.test( "filter_region adjacency tests", function( assert ) {
 		   2:ra, 3:rb, 4:rl, 5:rr,
 		   6:rtl, 7:rtr, 8:rbl, 8:rbr};
   var ids = {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true, 8:true};
-  var objectify = function(key) { return id_to_obj[key] };
 
-  assert.deepEqual( filter_region(ids, r, objectify),
+  assert.deepEqual( filter_region(ids, r, id_to_obj),
 		    {1:true} );
 });
 
@@ -116,11 +114,15 @@ QUnit.test( "refine tests", function( assert ) {
 /* test coarsen */
 QUnit.test( "coarsen tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:100, h:100});
+
+  expect(0);
 });
 
 /* test expand */
 QUnit.test( "expand tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:100, h:100});
+
+  expect(0);
 });
 
 /* test insert */

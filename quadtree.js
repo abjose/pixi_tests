@@ -134,9 +134,9 @@ QNode.prototype.refine = function() {
   if (Object.keys(this.ids).length === 0) return;
   
   // populate children with own ids
-  // THINK SOMETHING'S WRONG WITH USING 'this' HERE!!
   this.children.map(
-    function(c) { this.ids.map( function(id) { c.insert(id); }) }
+    function(c) { Object.keys(this.ids).map( function(id) { c.insert(id); } ) },
+    this
   );
   
   // clear own ids
@@ -241,8 +241,12 @@ QNode.prototype.inc_level = function() {
 QNode.prototype.clear_ids = function() {
   // don't proceed if have no ids
   if (Object.keys(this.ids).length === 0) return;
+  
   // remove references to this node from id_to_node
-  this.ids.map(function(id) { delete this.quadtree.id_to_node[id][this]; });
+  Object.keys(this.ids).map(
+    function(id) { delete this.quadtree.id_to_node[id][this]; }, this
+  );
+  
   // clear ids
   this.ids = {};
 };
@@ -266,7 +270,6 @@ QNode.prototype.clear = function() {
 
 // see if (AXIS-ALIGNED!) rectangles r1 and r2 overlap
 function overlaps(r1, r2) {
-  // TODO: does this handle edge intersections consistently and efficiently?
   // calculate centers and half-dimensions
   var r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
   var r2c = {x: r2.x+r2.w/2, y: r2.y+r2.h/2};
@@ -285,8 +288,8 @@ function overlaps(r1, r2) {
 function filter_region(ids, region, id_to_obj) {
   var i = 0, obj = {};
   // filter out external objects by id
-  var keys = Object.keys(ids).filter( function(o) {
-    return overlaps(region, id_to_obj[o]);
+  var keys = Object.keys(ids).filter( function(id) {
+    return overlaps(region, id_to_obj[id]);
   });
   
   // then construct and return an id object from the filtered keys
