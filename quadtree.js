@@ -130,7 +130,11 @@ QNode.prototype.refine = function() {
 				parent:this, quadtree:this.quadtree});
   this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel,//LR
 				parent:this, quadtree:this.quadtree});
-  // populate with own ids
+  // don't proceed if have no ids
+  if (Object.keys(this.ids).length === 0) return;
+  
+  // populate children with own ids
+  // THINK SOMETHING'S WRONG WITH USING 'this' HERE!!
   this.children.map(
     function(c) { this.ids.map( function(id) { c.insert(id); }) }
   );
@@ -168,7 +172,7 @@ QNode.prototype.coarsen_topdown = function(region, filtered_ids) {
     filtered_ids = filter_region(filtered_ids, region, this.quadtree.id_to_obj);
 
     // if few enough filtered ids, coarsen
-    if (filtered_ids.length < this.quadtree.max_objects) {
+    if (Object.keys(filtered_ids).length < this.quadtree.max_objects) {
       self.ids = filtered_ids;
       this.clear_children();
     } else if (this.children.length !== 0) {
@@ -235,6 +239,8 @@ QNode.prototype.inc_level = function() {
 
 // clear the ids from this node, updating the relevant datastructures
 QNode.prototype.clear_ids = function() {
+  // don't proceed if have no ids
+  if (Object.keys(this.ids).length === 0) return;
   // remove references to this node from id_to_node
   this.ids.map(function(id) { delete this.quadtree.id_to_node[id][this]; });
   // clear ids

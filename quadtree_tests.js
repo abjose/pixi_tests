@@ -94,6 +94,23 @@ QUnit.test( "sort_by_area tests", function( assert ) {
 /* test refine */
 QUnit.test( "refine tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var r1 = {id:1, x:0,  y:0,  w:1, h:1};
+  var r2 = {id:2, x:50, y:0,  w:1, h:1};
+  var r3 = {id:3, x:0,  y:50, w:1, h:1};
+  var r4 = {id:4, x:50, y:50, w:1, h:1};
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
+  
+  // make sure root has no children
+  assert.deepEqual( qt.root.children.length, 0 );
+
+  qt.root.refine();
+
+  // make sure root has four children
+  assert.deepEqual( qt.root.children.length, 4 );
+
 });
 
 /* test coarsen */
@@ -127,7 +144,7 @@ QUnit.test( "insert tests", function( assert ) {
   qt.insert(r6);
 
   assert.deepEqual( qt.query({x:-1000, y:-1000, w:2000, h:2000}),
-		    {});
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true});
 });
 
 /*
