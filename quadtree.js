@@ -8,6 +8,10 @@
 - replace Object.keys(stuff) with other things? Maybe not that inefficient...
 - replace max_objects with refine_thresh and coarsen_thresh
 - test out coarsen vs. coarsen_topdown - maybe use topdown in remove_region?
+- MAKE SURE MODIFYING OBJ-TO-NODE IN ALL THE RIGHT PLACES
+- currently can violate max_depth via expand - worth fixing?
+- add nice way to visualize quadtree to help verify working? ideally can
+  click to add points...
 */
 
 
@@ -99,7 +103,8 @@ QNode.prototype.insert = function(id) {
       // no children, add to self
       this.ids[id] = true;
       // need to refine if have too many objects at this level
-      if (Object.keys(this.ids).length > this.quadtree.max_objects) {
+      if (Object.keys(this.ids).length > this.quadtree.max_objects &&
+	  this.level <= this.quadtree.max_level) {
 	this.refine();
       }
     }
@@ -111,10 +116,16 @@ QNode.prototype.insert = function(id) {
 
 QNode.prototype.refine = function() {
   // create children
-  //this.children[0] = QNode(...); // upper-left
-  //this.children[1] = QNode(...); // upper-right
-  //this.children[2] = QNode(...); // lower-left
-  //this.children[3] = QNode(...); // lower-right
+  // TODO: MODIFY OBJ-TO-NODE
+  var x=this.x, y=this.y, hw = this.w/2, hh = this.h/2, newlevel=this.level+1;
+  this.children[0] = new QNode({x:x, y:y, w:hw, h:hh, level:newlevel,      //UL
+			    parent:this, quadtree:this.quadtree}); 
+  this.children[1] = new QNode({x:x+hw, y:y, w:hw, h:hh, level:newlevel,   //UR
+			    parent:this, quadtree:this.quadtree});
+  this.children[2] = new QNode({x:x, y:y+hh, w:hw, h:hh, level:newlevel,   //LL
+			    parent:this, quadtree:this.quadtree});
+  this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel,//LR
+			    parent:this, quadtree:this.quadtree});
 
   // populate with own ids
   this.children.map(
@@ -169,7 +180,7 @@ QNode.prototype.coarsen_topdown = function(region, filtered_ids) {
 // expand to accomodate object external to current quadtree
 QNode.prototype.expand = function(id) {
   // TODO: do some checks?
-  // TODO: make sure parent can coarsen if necessary?
+  
   // figure out what quadrant to expand towards
   var obj = this.quadtree.id_to_obj[id];
   var self_center = {x: this.x+this.w/2, y: this.y+this.h/2};
@@ -178,13 +189,17 @@ QNode.prototype.expand = function(id) {
   // figure out relative orientation
   var targ_is_left  = targ_center.x < self_center.x;
   var targ_is_above = targ_center.y > self_center.y;
-  var goal_quadrant = targ_is_left + targ_is_above*2;
+  var goal_quadrant = targ_is_left + 2*targ_is_above; // goal quadrant for self
+  var goal_x = this.x - targ_is_left*this.w,
+      goal_y = this.y - targ_is_above*this.h;
   
   // insert accordingly
-  //this.quadtree.root = new Qnode(...); // MAKE SURE TO SET DIMS APPROPRIATELY
+  this.quadtree.root.inc_level();
+  this.quadtree.root = new QNode({x:goal_x, y:goal_y, w:this.w*2, h:this.h*2,
+				  level:0, parent:null,
+				  quadtree:this.quadtree});
   this.quadtree.root.refine();
-  this.quadtree.root.children[goal_quadrant] = this;
-  // sure you should coarsen here?
+  this.quadtree.root.children[goal_quadrant] = this; // memory leaks?
   this.quadtree.root.coarsen();
   this.quadtree.root.insert(id);
 };
@@ -211,6 +226,13 @@ QNode.prototype.query = function(region) {
 QNode.prototype.overlaps = function(region) {
   return overlaps(this, region);
 };
+
+// increment all levels in the quadtree
+QNode.prototype.inc_level = function() {
+  this.level += 1;
+  this.children.map( function(c) { c.inc_level(); } );
+};
+
 
 // see if (AXIS-ALIGNED!) rectangles r1 and r2 overlap
 function overlaps(r1, r2) {
