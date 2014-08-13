@@ -7,7 +7,7 @@
 - check to see if 'coarsen' leads to memory leaks
 - replace Object.keys(stuff) with other things? Maybe not that inefficient...
 - replace max_objects with refine_thresh and coarsen_thresh
-- test out coarsen vs. coarsen_topdown - maybe use topdown in remove_region?
+- test out coarsen vs. coarsen_topdown - maybe use topdown in remove_by_region?
 - currently can violate max_depth via expand - worth fixing?
 - add nice way to visualize quadtree to help verify working? ideally can
   click to add points...
@@ -55,7 +55,7 @@ Quadtree.prototype.query = function(region) {
 }
 
 // remove all references to the object with the given id
-Quadtree.prototype.remove_object = function(id) {
+Quadtree.prototype.remove_by_id = function(id) {
   // grab affected nodes
   var nodes = Object.keys(this.id_to_node[id]);
   // tell them all to remove the object and try to coarsen
@@ -69,11 +69,11 @@ Quadtree.prototype.remove_object = function(id) {
 
 // remove all elements in a given region
 // TODO: consider using coarsen_topdown
-Quadtree.prototype.remove_region = function(region) {
+Quadtree.prototype.remove_by_region = function(region) {
   // query root to figure out what ids are in the passed region
   var ids = this.query(region);
   // kill them all
-  ids.map( function(id) { this.remove_object(id); } );  
+  ids.map( function(id) { this.remove_by_id(id); } );  
 };
 
 // delete all objects from the quadtree (leaving dimensions, etc. the same)
