@@ -371,24 +371,20 @@ QUnit.test( "clear tests", function( assert ) {
 
 // stress tests
 QUnit.test( "stress tests", function( assert ) {
-  var x=0, y=0, w=100, h=100;
+  var x=-2000, y=-2000, w=4000, h=4000;
   var qt = new Quadtree({x:x, y:y, w:w, h:h});
-  var i=0, region={};
-  var matches={};
+  var i=0, matches={};
 
-  for (; i < 100; i++) {
+  for (; i < 10000; i++) {
     matches[i] = true;
-    region = {id: i,
-	      x: Math.random()*w + x,
-	      y: Math.random()*h + y,
-	      w: Math.random()*w,
-	      h: Math.random()*h};
-    qt.insert(region);
-    console.log(qt);
+    qt.insert({id: i,
+	       x: Math.random()*w + x,
+	       y: Math.random()*h + y,
+	       w: Math.random()*100,
+	       h: Math.random()*100});
   }
-
   assert.deepEqual( qt.query(), matches);
-
+  
   qt.clear();
   assert.deepEqual( qt.query(), {});
 });
