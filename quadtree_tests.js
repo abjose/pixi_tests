@@ -30,6 +30,30 @@ QUnit.test( "overlaps tests", function( assert ) {
   assert.ok( !overlaps(r3, r2) );
 });
 
+/* test contains */
+QUnit.test( "contains tests", function( assert ) {
+  var r1 = {x:0, y:0, w:100, h:100};
+  var r2 = {x:10, y:10, w:1, h:1};
+  var r3 = {x:20, y:-1000, w:1, h:2000};
+
+  // self-contains
+  assert.ok( contains(r1, r1) );
+  assert.ok( contains(r2, r2) );
+  assert.ok( contains(r3, r3) );
+
+  // point-contains
+  assert.ok( contains(r1, r2) );
+  assert.ok( !contains(r2, r1) );
+
+  // weird skinny contains
+  assert.ok( !contains(r1, r3) );
+  assert.ok( !contains(r3, r1) );
+
+  // non-contains
+  assert.ok( !contains(r2, r3) );
+  assert.ok( !contains(r3, r2) );
+});
+
 /* test filter_region */
 QUnit.test( "filter_region tests", function( assert ) {
   var r1 = {x:0, y:0, w:100, h:100};
@@ -188,6 +212,8 @@ QUnit.test( "expand tests", function( assert ) {
   var r8  = {id:8,  x:-50000000,     y: 50000000,     w:1, h:1};
   var r9  = {id:9,  x: 5000000000,   y:-5000000000,   w:1, h:1};
   var r10 = {id:10, x:-500000000000, y:-500000000000, w:1, h:1};
+  // its presence surrounds us
+  var r11 = {id:11, x:-2e50, y:-2e50, w:4e51, h:4e51};
 
   // insert boring objects
   qt.insert(r1);
@@ -203,7 +229,6 @@ QUnit.test( "expand tests", function( assert ) {
   assert.deepEqual( qt.query(),
 		    {1:true, 2:true, 3:true, 4:true, 5:true} );
 
-  // insert smaller enlarge
   qt.insert(r6);
   // make sure root has no children i.e. coarsen 'bubbled up' properly
   assert.deepEqual( qt.root.children.length, 0 );
@@ -211,7 +236,6 @@ QUnit.test( "expand tests", function( assert ) {
   assert.deepEqual( qt.query(),
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true} );
 
-  // insert smaller enlarge
   qt.insert(r7);
   // make sure root has no children i.e. coarsen 'bubbled up' properly
   assert.deepEqual( qt.root.children.length, 0 );
@@ -219,7 +243,6 @@ QUnit.test( "expand tests", function( assert ) {
   assert.deepEqual( qt.query(),
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true} );
 
-  // insert smaller enlarge
   qt.insert(r8);
   // make sure root has no children i.e. coarsen 'bubbled up' properly
   assert.deepEqual( qt.root.children.length, 0 );
@@ -228,7 +251,6 @@ QUnit.test( "expand tests", function( assert ) {
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
 		     8:true} );
 
-  // insert smaller enlarge
   qt.insert(r9);
   // make sure root has no children i.e. coarsen 'bubbled up' properly
   assert.deepEqual( qt.root.children.length, 0 );
@@ -237,7 +259,6 @@ QUnit.test( "expand tests", function( assert ) {
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
 		     8:true, 9:true} );
 
-  // insert smaller enlarge
   qt.insert(r10);
   // make sure root has no children i.e. coarsen 'bubbled up' properly
   assert.deepEqual( qt.root.children.length, 0 );
@@ -245,6 +266,16 @@ QUnit.test( "expand tests", function( assert ) {
   assert.deepEqual( qt.query(),
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
 		     8:true, 9:true, 10:true} );
+
+  qt.insert(r11);
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
+		     8:true, 9:true, 10:true, 11:true} );
+  
+  console.log(qt.root);
 });
 
 /* test insert */
