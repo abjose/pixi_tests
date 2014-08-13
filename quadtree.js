@@ -15,6 +15,8 @@
 - wait, aren't you supposed to have a hash of tags at each leaf?
   I guess reasonable to not include that here, but wrap quadtree to it can
   do that stuff - so maybe this code will actually be useful to someone else.
+- allow quadtree to shrink if don't need to be as large as it is? i.e. have a 
+  spatial "contract" in addition to "expand"
 */
 
 
@@ -24,13 +26,16 @@ function Quadtree(args) {
   this.max_objects = args.max_objects || 50;
   this.max_level   = args.max_level   || 10;
 
+  // id-to-object mapping - is this even necessary?
+  this.obj_ids    = {};
+  // id-to-node mapping - for each id, track referencing nodes (using an object)
+  this.id_to_node = {};
+  // id-to-node mapping (using node ids)
+  this.node_ids   = {1:'hello'}
+
   // root of quadtree
   this.root = new QNode({x:args.x, y:args.y, w:args.w, h:args.h,
 			 level:0, parent:null, quadtree:this});
-  // id-to-object mapping - is this even necessary?
-  this.id_to_obj  = {};
-  // id-to-node mapping - for each id, track referencing nodes (using an object)
-  this.id_to_node = {};
 };
 
 // attempt to insert passed object (with x,y,w,h,id properties)
@@ -40,7 +45,7 @@ Quadtree.prototype.insert = function(obj) {
     throw "The passed object lacks one or more of: x,y,w,h,id.";
   }
   // first need to add to id-to-object map
-  this.id_to_obj[obj.id]  = obj;
+  this.obj_ids[obj.id]    = obj;
   // make sure id_to_node has been initialized
   this.id_to_node[obj.id] = this.id_to_node[obj.id] || {};
   // then insert into the root - will automatically update id_to_node
@@ -58,13 +63,19 @@ Quadtree.prototype.query = function(region) {
 Quadtree.prototype.remove_by_id = function(id) {
   // grab affected nodes
   var nodes = Object.keys(this.id_to_node[id]);
+
   // tell them all to remove the object and try to coarsen
   nodes.map( function(n) {
+    //console.log(n);
+    //console.log(id);
+    //console.log(n.ids);
+    //console.log(n.ids[id]);
     delete n.ids[id];
-    n.coarsen();
+    n.parent.coarsen();
   } );
-  // then remove the object from id_to_obj
-  delete this.id_to_obj[id];
+  
+  // then remove the object from obj_ids
+  delete this.obj_ids[id];
 };
 
 // remove all elements in a given region
@@ -73,14 +84,14 @@ Quadtree.prototype.remove_by_region = function(region) {
   // query root to figure out what ids are in the passed region
   var ids = this.query(region);
   // kill them all
-  ids.map( function(id) { this.remove_by_id(id); } );  
+  ids.map( function(id) { this.remove_by_id(id); }, this );  
 };
 
 // delete all objects from the quadtree (leaving dimensions, etc. the same)
 Quadtree.prototype.clear = function() {
   this.root.children = []; // MEMORY LEAKS?!?!?!?!?!
   this.root.ids   = {};
-  this.id_to_obj  = {};
+  this.obj_ids    = {};
   this.id_to_node = {};
 };
 
@@ -90,9 +101,18 @@ function QNode(args) {
   this.x = args.x; this.y = args.y;
   this.w = args.w; this.h = args.h;
   this.quadtree = args.quadtree;
-  this.level    = args.level || 0;
+  //console.log(this.quadtree.obj_ids);
+  //this.id = UUID(); this.quadtree.node_ids[this.id] = this;
+  if (this.quadtree.node_ids === undefined) {
+    console.log('UNDEFINED!');
+    console.log(this.quadtree);
+    this.quadtree.node_ids = this.quadtree.node_ids || {};
+    console.log(this.quadtree.node_ids);
+  }
+  console.log(this.quadtree.node_ids);
 
   // keep track of tree-y information
+  this.level    = args.level || 0;
   this.parent   = args.parent;
   this.children = [];
 
@@ -102,7 +122,7 @@ function QNode(args) {
 
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
-  var obj = this.quadtree.id_to_obj[id];
+  var obj = this.quadtree.obj_ids[id];
 
   // check if need to 'expand' to accomodate external region
   if (this.level === 0 && !this.contains(obj)) {
@@ -176,7 +196,7 @@ QNode.prototype.coarsen_topdown = function(region, filtered_ids) {
     filtered_ids = filtered_ids || this.query(region);
 
     // filter passed ids to own region
-    filtered_ids = filter_region(filtered_ids, region, this.quadtree.id_to_obj);
+    filtered_ids = filter_region(filtered_ids, region, this.quadtree.obj_ids);
 
     // if few enough filtered ids, coarsen
     if (Object.keys(filtered_ids).length < this.quadtree.max_objects) {
@@ -194,7 +214,7 @@ QNode.prototype.expand = function(id) {
   // TODO: do some checks?
   
   // figure out what quadrant to expand towards
-  var obj = this.quadtree.id_to_obj[id];
+  var obj = this.quadtree.obj_ids[id];
   var self_center = {x: this.x+this.w/2, y: this.y+this.h/2};
   var targ_center = {x: obj.x+obj.w/2,   y: obj.y+obj.h/2};
 
@@ -224,7 +244,7 @@ QNode.prototype.query = function(region) {
 
   // if inside query region and have no children, return objects
   if (this.children.length === 0) {
-    return filter_region(this.ids, region, this.quadtree.id_to_obj);
+    return filter_region(this.ids, region, this.quadtree.obj_ids);
   }
 
   // otherwise delegate to children
@@ -311,11 +331,11 @@ function contains(r1, r2) {
 };
 
 // return object of ids internal to passed region
-function filter_region(ids, region, id_to_obj) {
+function filter_region(ids, region, obj_ids) {
   var i = 0, obj = {};
   // filter out external objects by id
   var keys = Object.keys(ids).filter( function(id) {
-    return overlaps(region, id_to_obj[id]);
+    return overlaps(region, obj_ids[id]);
   });
   
   // then construct and return an id object from the filtered keys
@@ -332,3 +352,15 @@ function sort_by_area(nodes) {
     return b.w*b.h - a.w*a.h;
   });
 }
+
+// generate a random 'guid'
+// stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+function UUID(){
+  var d = performance.now();
+  var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r = (d + Math.random()*16)%16 | 0;
+    d = Math.floor(d/16);
+    return (c=='x' ? r : (r&0x7|0x8)).toString(16);
+  });
+  return uuid;
+};
