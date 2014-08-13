@@ -27,11 +27,11 @@ function Quadtree(args) {
   this.max_level   = args.max_level   || 10;
 
   // id-to-object mapping - is this even necessary?
-  this.obj_ids    = {};
-  // id-to-node mapping - for each id, track referencing nodes (using an object)
-  this.id_to_node = {};
-  // id-to-node mapping (using node ids)
-  this.node_ids   = {1:'hello'}
+  this.obj_ids     = {};
+  // id-to-node mapping (using node ids) - necessary?
+  this.node_ids    = {};
+  // object id-to-node_id mapping - for each id, track referencing nodes
+  this.obj_to_node = {};
 
   // root of quadtree
   this.root = new QNode({x:args.x, y:args.y, w:args.w, h:args.h,
@@ -45,10 +45,10 @@ Quadtree.prototype.insert = function(obj) {
     throw "The passed object lacks one or more of: x,y,w,h,id.";
   }
   // first need to add to id-to-object map
-  this.obj_ids[obj.id]    = obj;
-  // make sure id_to_node has been initialized
-  this.id_to_node[obj.id] = this.id_to_node[obj.id] || {};
-  // then insert into the root - will automatically update id_to_node
+  this.obj_ids[obj.id]     = obj;
+  // make sure obj_to_node has been initialized
+  this.obj_to_node[obj.id] = this.obj_to_node[obj.id] || {};
+  // then insert into the root - will automatically update obj_to_node
   this.root.insert(obj.id);
 };
 
@@ -62,17 +62,14 @@ Quadtree.prototype.query = function(region) {
 // remove all references to the object with the given id
 Quadtree.prototype.remove_by_id = function(id) {
   // grab affected nodes
-  var nodes = Object.keys(this.id_to_node[id]);
+  var node_ids = Object.keys(this.obj_to_node[id]);
 
   // tell them all to remove the object and try to coarsen
-  nodes.map( function(n) {
-    //console.log(n);
-    //console.log(id);
-    //console.log(n.ids);
-    //console.log(n.ids[id]);
+  node_ids.map( function(n_id) {
+    var n = this.node_ids[n_id];
     delete n.ids[id];
-    n.parent.coarsen();
-  } );
+    if (n.parent !== null) n.parent.coarsen();
+  }, this );
   
   // then remove the object from obj_ids
   delete this.obj_ids[id];
@@ -82,7 +79,7 @@ Quadtree.prototype.remove_by_id = function(id) {
 // TODO: consider using coarsen_topdown
 Quadtree.prototype.remove_by_region = function(region) {
   // query root to figure out what ids are in the passed region
-  var ids = this.query(region);
+  var ids = Object.keys(this.query(region));
   // kill them all
   ids.map( function(id) { this.remove_by_id(id); }, this );  
 };
@@ -90,9 +87,9 @@ Quadtree.prototype.remove_by_region = function(region) {
 // delete all objects from the quadtree (leaving dimensions, etc. the same)
 Quadtree.prototype.clear = function() {
   this.root.children = []; // MEMORY LEAKS?!?!?!?!?!
-  this.root.ids   = {};
-  this.obj_ids    = {};
-  this.id_to_node = {};
+  this.root.ids    = {};
+  this.obj_ids     = {};
+  this.obj_to_node = {};
 };
 
 // a node in the quadtree
@@ -101,16 +98,8 @@ function QNode(args) {
   this.x = args.x; this.y = args.y;
   this.w = args.w; this.h = args.h;
   this.quadtree = args.quadtree;
-  //console.log(this.quadtree.obj_ids);
-  //this.id = UUID(); this.quadtree.node_ids[this.id] = this;
-  if (this.quadtree.node_ids === undefined) {
-    console.log('UNDEFINED!');
-    console.log(this.quadtree);
-    this.quadtree.node_ids = this.quadtree.node_ids || {};
-    console.log(this.quadtree.node_ids);
-  }
-  console.log(this.quadtree.node_ids);
-
+  this.id = UUID(); this.quadtree.node_ids[this.id] = this;
+  
   // keep track of tree-y information
   this.level    = args.level || 0;
   this.parent   = args.parent;
@@ -118,6 +107,7 @@ function QNode(args) {
 
   // keep track of ids of objects belonging to this node
   this.ids = {};
+  this.quadtree.obj_to_node[this.id] = {};
 };  
 
 // attempt to insert object with given id into quadtree
@@ -272,7 +262,7 @@ QNode.prototype.inc_level = function() {
 // add a list of ids
 QNode.prototype.add_ids = function(ids) {
   ids.map( function(id) { this.ids[id] = true;
-			  this.quadtree.id_to_node[id][this] = true; },
+			  this.quadtree.obj_to_node[id][this.id] = true; },
 	   this );
 };
 
@@ -281,9 +271,9 @@ QNode.prototype.clear_ids = function() {
   // don't proceed if have no ids
   if (Object.keys(this.ids).length === 0) return;
   
-  // remove references to this node from id_to_node
+  // remove references to this node from obj_to_node
   Object.keys(this.ids).map(
-    function(id) { delete this.quadtree.id_to_node[id][this]; }, this
+    function(id) { delete this.quadtree.obj_to_node[id][this.id]; }, this
   );
   
   // clear ids
