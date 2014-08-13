@@ -15,9 +15,6 @@
 - wait, aren't you supposed to have a hash of tags at each leaf?
   I guess reasonable to not include that here, but wrap quadtree to it can
   do that stuff - so maybe this code will actually be useful to someone else.
-- I DON'T THINK IT'S EXPANDING TO CONTAIN THINGS LARGER THAN ITSELF!!
-  Need to write a check for 'containment'
-  just check if edges are inside of qnode edges lolz
 */
 
 
@@ -107,8 +104,13 @@ function QNode(args) {
 QNode.prototype.insert = function(id) {
   var obj = this.quadtree.id_to_obj[id];
 
+  // check if need to 'expand' to accomodate external region
+  if (this.level === 0 && !this.contains(obj)) {
+    this.expand(id);
+  }
+  
   // verify the passed object should actually be added
-  if (this.overlaps(obj)) {
+  else if (this.overlaps(obj)) {
     // if have children, pass on to them
     if (this.children.length !== 0) {
       this.children.map( function(c) { c.insert(id) } );
@@ -121,11 +123,7 @@ QNode.prototype.insert = function(id) {
 	this.refine();
       }
     }
-  } else if (this.level === 0) {
-    // need to 'expand' to accomodate external point
-    console.log('need to expand!');
-    this.expand(id);
-  }
+  } 
 };
 
 QNode.prototype.refine = function() {
@@ -202,7 +200,7 @@ QNode.prototype.expand = function(id) {
 
   // figure out relative orientation
   var targ_is_left  = targ_center.x < self_center.x;
-  var targ_is_below = targ_center.y < self_center.y;  // below here == smaller y
+  var targ_is_below = targ_center.y < self_center.y;  // 'below' == smaller y
   var goal_quadrant = targ_is_left + 2*targ_is_below; // goal quadrant for self
   var goal_x = this.x - targ_is_left*this.w,
       goal_y = this.y - targ_is_below*this.h;
@@ -238,6 +236,11 @@ QNode.prototype.query = function(region) {
 // see if passed region overlaps this node
 QNode.prototype.overlaps = function(region) {
   return overlaps(this, region);
+};
+
+// see if passed region overlaps this node
+QNode.prototype.contains = function(region) {
+  return contains(this, region);
 };
 
 // increment all levels in the quadtree
@@ -300,7 +303,7 @@ function overlaps(r1, r2) {
   return (dx < x_sum) && (dy < y_sum);
 };
 
-// check if AABB r1 contains AABB r2
+// check if AABB r1 contains AABB r2 (allowing edge contact)
 function contains(r1, r2) {
   return r1.x <= r2.x && r1.y <= r2.y &&
     r1.x+r1.w >= r2.x+r2.w &&
