@@ -302,9 +302,57 @@ QUnit.test( "insert tests", function( assert ) {
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true});
 });
 
-// test remove(s)...
-QUnit.test( "remove tests", function( assert ) {
+// test remove_by_region
+QUnit.test( "remove_by_region tests", function( assert ) {
+  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var r1 = {id:1, x:0, y:0, w:100, h:100};
+  var r2 = {id:2, x:10, y:10, w:1, h:1};
+  var r3 = {id:3, x:10, y:10, w:1, h:1};
+  var r4 = {id:4, x:10, y:10, w:1, h:1};
+  var r5 = {id:5, x:20, y:-1000, w:1, h:2000};
+  var r6 = {id:6, x:-500, y:-500, w:1000, h:1000};
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
+  qt.insert(r5);
+  qt.insert(r6);
+
+  qt.remove_by_region({x:19, y:-1000, w:2, h:1});
+  assert.deepEqual( qt.query(), {1:true, 2:true, 3:true, 4:true, 6:true});
+  
+  qt.remove_by_region({x:-500, y:-500, w:2, h:1});
+  assert.deepEqual( qt.query(), {1:true, 2:true, 3:true, 4:true});
 });
+
+// test remove_by_id
+QUnit.test( "remove_by_id tests", function( assert ) {
+  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var r1 = {id:1, x:0, y:0, w:100, h:100};
+  var r2 = {id:2, x:10, y:10, w:1, h:1};
+  var r3 = {id:3, x:10, y:10, w:1, h:1};
+  var r4 = {id:4, x:10, y:10, w:1, h:1};
+  var r5 = {id:5, x:20, y:-1000, w:1, h:2000};
+  var r6 = {id:6, x:-500, y:-500, w:1000, h:1000};
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
+  qt.insert(r5);
+  qt.insert(r6);
+
+  qt.remove_by_id(r6.id);
+  assert.deepEqual( qt.query(), {1:true, 2:true, 3:true, 4:true, 5:true});
+  
+  qt.remove_by_id(r2.id);
+  assert.deepEqual( qt.query(), {1:true, 3:true, 4:true, 5:true});
+});
+
+// test remove_region
+// test remove_object
+// test clear
+// stress tests!!
+// verify doesn't exceed max depth or max objects under normal insertion
 
 /*
 // test refine 
