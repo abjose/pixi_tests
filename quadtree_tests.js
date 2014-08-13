@@ -2,8 +2,9 @@
 /* TESTS TODO/NOTES
 - add 'stress tests' for adding lots of nodes (ideally compare to other
   quadtree libs before DELETING MERCILESSLY)
-- test out inserting object that encompasses entire quadtree
 - make sure proper number of subtrees after inserting and removing lots of nodes
+- WEIRD BEHAVIOR for very large enlarges
+- test clearing and removals
 */
 
 /* test overlaps */
@@ -213,7 +214,10 @@ QUnit.test( "expand tests", function( assert ) {
   var r9  = {id:9,  x: 5000000000,   y:-5000000000,   w:1, h:1};
   var r10 = {id:10, x:-500000000000, y:-500000000000, w:1, h:1};
   // its presence surrounds us
-  var r11 = {id:11, x:-2e50, y:-2e50, w:4e51, h:4e51};
+  // TRY SWITCHING BETWEEN THESE TWO - WEIRD BEHAVIOR!
+  //var r11 = {id:11, x:-2e60, y:-2e60, w:4e60, h:4e60};
+  //var r11 = {id:11, x:-2e60, y:-2e60, w:4e61, h:4e61};
+  var r11 = {id:11, x:-2e10, y:-2e10, w:4e11, h:4e11};
 
   // insert boring objects
   qt.insert(r1);
@@ -274,8 +278,6 @@ QUnit.test( "expand tests", function( assert ) {
   assert.deepEqual( qt.query(),
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
 		     8:true, 9:true, 10:true, 11:true} );
-  
-  console.log(qt.root);
 });
 
 /* test insert */
@@ -298,6 +300,10 @@ QUnit.test( "insert tests", function( assert ) {
 
   assert.deepEqual( qt.query({x:-1000, y:-1000, w:2000, h:2000}),
 		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true});
+});
+
+// test remove(s)...
+QUnit.test( "remove tests", function( assert ) {
 });
 
 /*
