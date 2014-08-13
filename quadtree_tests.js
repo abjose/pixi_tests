@@ -182,8 +182,12 @@ QUnit.test( "expand tests", function( assert ) {
   // requires just one expansion
   var r5 = {id:5, x:150, y:150, w:1, h:1};
   // require many expansions
-  var r6 = {id:6, x:5000, y:5000, w:1, h:1};
+  var r6 = {id:6, x:5000,   y:5000,   w:1, h:1};
   var r7 = {id:7, x:500000, y:500000, w:1, h:1};
+  // and in the other directions...
+  var r8  = {id:8,  x:-50000000,     y: 50000000,     w:1, h:1};
+  var r9  = {id:9,  x: 5000000000,   y:-5000000000,   w:1, h:1};
+  var r10 = {id:10, x:-500000000000, y:-500000000000, w:1, h:1};
 
   // insert boring objects
   qt.insert(r1);
@@ -193,14 +197,54 @@ QUnit.test( "expand tests", function( assert ) {
 
   // insert smaller enlarge
   qt.insert(r5);
-
-  // make sure root has no children
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
   assert.deepEqual( qt.root.children.length, 0 );
-  // make sure the objects are in the right places
-  assert.deepEqual( qt.query({x:0, y:0, w:100, h:100}),
-		    {1:true, 2:true, 3:true, 4:true} );
-  // make sure root is proper size
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true} );
 
+  // insert smaller enlarge
+  qt.insert(r6);
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true} );
+
+  // insert smaller enlarge
+  qt.insert(r7);
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true} );
+
+  // insert smaller enlarge
+  qt.insert(r8);
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
+		     8:true} );
+
+  // insert smaller enlarge
+  qt.insert(r9);
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
+		     8:true, 9:true} );
+
+  // insert smaller enlarge
+  qt.insert(r10);
+  // make sure root has no children i.e. coarsen 'bubbled up' properly
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the new object was inserted
+  assert.deepEqual( qt.query(),
+		    {1:true, 2:true, 3:true, 4:true, 5:true, 6:true, 7:true,
+		     8:true, 9:true, 10:true} );
 });
 
 /* test insert */
