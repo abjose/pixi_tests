@@ -15,6 +15,9 @@
 - wait, aren't you supposed to have a hash of tags at each leaf?
   I guess reasonable to not include that here, but wrap quadtree to it can
   do that stuff - so maybe this code will actually be useful to someone else.
+- I DON'T THINK IT'S EXPANDING TO CONTAIN THINGS LARGER THAN ITSELF!!
+  Need to write a check for 'containment'
+  just check if edges are inside of qnode edges lolz
 */
 
 
@@ -281,7 +284,7 @@ QNode.prototype.clear = function() {
   this.clear_children();
 };
 
-// see if (AXIS-ALIGNED!) rectangles r1 and r2 overlap
+// check if AABBs r1 and r2 overlap
 function overlaps(r1, r2) {
   // calculate centers and half-dimensions
   var r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
@@ -295,6 +298,13 @@ function overlaps(r1, r2) {
 
   // overlapping if too close not to be
   return (dx < x_sum) && (dy < y_sum);
+};
+
+// check if AABB r1 contains AABB r2
+function contains(r1, r2) {
+  return r1.x <= r2.x && r1.y <= r2.y &&
+    r1.x+r1.w >= r2.x+r2.w &&
+    r1.y+r1.h >= r2.y+r2.h;
 };
 
 // return object of ids internal to passed region
