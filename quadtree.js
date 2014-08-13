@@ -17,13 +17,22 @@
   do that stuff - so maybe this code will actually be useful to someone else.
 - allow quadtree to shrink if don't need to be as large as it is? i.e. have a 
   spatial "contract" in addition to "expand"
+- stress tests - seems to get into infinite loop? super fast up to 150 
+  insertions...then becomes really slow.
+  But why isn't stuff being printed out?!?!?!
+- obj_to_node and obj_ids not being updated?
+- because having objects at low levels seems bad - reconsider keeping large
+  objects at largest common ancestor?
+  also consider compressed quadtree - look stuff up
+  make a branch for these things!
+  could make only slightly compressed by only refining quadrant that needs it
 */
 
 
 function Quadtree(args) {
   // required: x, y, w, h
   // optional: max_objects, max_level
-  this.max_objects = args.max_objects || 50;
+  this.max_objects = args.max_objects || 100;
   this.max_level   = args.max_level   || 10;
 
   // id-to-object mapping - is this even necessary?
@@ -55,7 +64,8 @@ Quadtree.prototype.insert = function(obj) {
 // return a list of objects located in the given region
 Quadtree.prototype.query = function(region) {
   // if no region provided, query entire quadtree
-  region = region || {x:this.root.x,y:this.root.y,w:this.root.w,h:this.root.h};
+  region = region || {x:this.root.x, y:this.root.y,
+		      w:this.root.w, h:this.root.h};
   return this.root.query(region);
 }
 
@@ -123,6 +133,7 @@ QNode.prototype.insert = function(id) {
   else if (this.overlaps(obj)) {
     // if have children, pass on to them
     if (this.children.length !== 0) {
+      //for(var i=0; i < 4; i++) this.children[i].insert(id);
       this.children.map( function(c) { c.insert(id) } );
     } else {
       // no children, add to self
@@ -139,13 +150,13 @@ QNode.prototype.insert = function(id) {
 QNode.prototype.refine = function() {
   // create children
   var x=this.x, y=this.y, hw = this.w/2, hh = this.h/2, newlevel=this.level+1;
-  this.children[0] = new QNode({x:x, y:y, w:hw, h:hh, level:newlevel,      //UL
+  this.children[0] = new QNode({x:x,    y:y,    w:hw, h:hh, level:newlevel, //UL
 				parent:this, quadtree:this.quadtree}); 
-  this.children[1] = new QNode({x:x+hw, y:y, w:hw, h:hh, level:newlevel,   //UR
+  this.children[1] = new QNode({x:x+hw, y:y,    w:hw, h:hh, level:newlevel, //UR
 				parent:this, quadtree:this.quadtree});
-  this.children[2] = new QNode({x:x, y:y+hh, w:hw, h:hh, level:newlevel,   //LL
+  this.children[2] = new QNode({x:x,    y:y+hh, w:hw, h:hh, level:newlevel, //LL
 				parent:this, quadtree:this.quadtree});
-  this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel,//LR
+  this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel, //LR
 				parent:this, quadtree:this.quadtree});
   // don't proceed if have no ids
   if (Object.keys(this.ids).length === 0) return;
@@ -295,6 +306,8 @@ QNode.prototype.clear = function() {
   this.clear_ids();
   // tell children to clear
   this.clear_children();
+  // remove self from node_ids
+  delete this.quadtree.node_ids[this.id];
 };
 
 // check if AABBs r1 and r2 overlap
