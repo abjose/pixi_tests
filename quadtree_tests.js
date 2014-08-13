@@ -4,7 +4,7 @@
   quadtree libs before DELETING MERCILESSLY)
 - make sure proper number of subtrees after inserting and removing lots of nodes
 - WEIRD BEHAVIOR for very large enlarges
-- test clearing and removals
+- verify doesn't exceed max depth or max objects under normal insertion
 */
 
 /* test overlaps */
@@ -369,31 +369,26 @@ QUnit.test( "clear tests", function( assert ) {
 });
 
 
-// test clear
-// stress tests!!
-// verify doesn't exceed max depth or max objects under normal insertion
+// stress tests
+QUnit.test( "stress tests", function( assert ) {
+  var x=0, y=0, w=100, h=100;
+  var qt = new Quadtree({x:x, y:y, w:w, h:h});
+  var i=0, region={};
+  var matches={};
 
-/*
-// test refine 
-QUnit.test( "refine tests", function( assert ) {
+  for (; i < 100; i++) {
+    matches[i] = true;
+    region = {id: i,
+	      x: Math.random()*w + x,
+	      y: Math.random()*h + y,
+	      w: Math.random()*w,
+	      h: Math.random()*h};
+    qt.insert(region);
+    console.log(qt);
+  }
+
+  assert.deepEqual( qt.query(), matches);
+
+  qt.clear();
+  assert.deepEqual( qt.query(), {});
 });
-*/
-
-/*
-var qt = new Quadtree({x:0, y:0, h:100, w:100});
-
-var obj = {id: 123}
-
-var p1 = {x:0, y:0, h:1, w:1};
-var p2 = {x:-20, y:20, h:1, w:1};
-var p3 = {x:233030, y:29832, h:1, w:1};
-
-var r1 = {x:0, y:0, h:100, w:100};
-var r2 = {x:100, y:0, h:100, w:100};
-var r3 = {x:-237870, y:0, h:100, w:100};
-
-qt.insert(p1);
-qt.insert(p2, p3];
-qt.remove(p1);
-qt.remove(p2, p3);
-*/
