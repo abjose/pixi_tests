@@ -11,6 +11,7 @@
 - currently can violate max_depth via expand - worth fixing?
 - add nice way to visualize quadtree to help verify working? ideally can
   click to add points...
+  maybe just implement this as you're implementing canvas stuff
 - wait, aren't you supposed to have a hash of tags at each leaf?
   I guess reasonable to not include that here, but wrap quadtree to it can
   do that stuff - so maybe this code will actually be useful to someone else.
@@ -48,6 +49,8 @@ Quadtree.prototype.insert = function(obj) {
 
 // return a list of objects located in the given region
 Quadtree.prototype.query = function(region) {
+  // if no region provided, query entire quadtree
+  region = region || {x:this.root.x,y:this.root.y,w:this.root.w,h:this.root.h};
   return this.root.query(region);
 }
 
