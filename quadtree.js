@@ -11,6 +11,9 @@
 - currently can violate max_depth via expand - worth fixing?
 - add nice way to visualize quadtree to help verify working? ideally can
   click to add points...
+- wait, aren't you supposed to have a hash of tags at each leaf?
+  I guess reasonable to not include that here, but wrap quadtree to it can
+  do that stuff - so maybe this code will actually be useful to someone else.
 */
 
 
@@ -105,16 +108,16 @@ QNode.prototype.insert = function(id) {
       this.children.map( function(c) { c.insert(id) } );
     } else {
       // no children, add to self
-      this.ids[id] = true;
-      this.quadtree.id_to_node[id][this] = true;
+      this.add_ids([id]);
       // need to refine if have too many objects at this level
       if (Object.keys(this.ids).length > this.quadtree.max_objects &&
 	  this.level <= this.quadtree.max_level) {
 	this.refine();
       }
     }
-  } else if (this.layer === 0) {
+  } else if (this.level === 0) {
     // need to 'expand' to accomodate external point
+    console.log('need to expand!');
     this.expand(id);
   }
 };
@@ -154,9 +157,9 @@ QNode.prototype.coarsen = function() {
     if (Object.keys(child_ids).length < this.quadtree.max_objects) {
       // subsume and destroy children
       this.clear_children();
-      this.ids = child_ids;
+      this.add_ids(Object.keys(child_ids));
       // tell parent that it should consider coarsening
-      this.parent.coarsen();
+      if (this.parent !== null) this.parent.coarsen();
     }
   }
 };
@@ -173,7 +176,7 @@ QNode.prototype.coarsen_topdown = function(region, filtered_ids) {
 
     // if few enough filtered ids, coarsen
     if (Object.keys(filtered_ids).length < this.quadtree.max_objects) {
-      self.ids = filtered_ids;
+      this.add_ids(Object.keys(filtered_ids));
       this.clear_children();
     } else if (this.children.length !== 0) {
       // if didn't coarsen, tell children to try (passing newly filtered ids)
@@ -193,11 +196,11 @@ QNode.prototype.expand = function(id) {
 
   // figure out relative orientation
   var targ_is_left  = targ_center.x < self_center.x;
-  var targ_is_above = targ_center.y > self_center.y;
-  var goal_quadrant = targ_is_left + 2*targ_is_above; // goal quadrant for self
+  var targ_is_below = targ_center.y < self_center.y;  // below here == smaller y
+  var goal_quadrant = targ_is_left + 2*targ_is_below; // goal quadrant for self
   var goal_x = this.x - targ_is_left*this.w,
-      goal_y = this.y - targ_is_above*this.h;
-  
+      goal_y = this.y - targ_is_below*this.h;
+
   // insert accordingly
   this.quadtree.root.inc_level();
   this.quadtree.root = new QNode({x:goal_x, y:goal_y, w:this.w*2, h:this.h*2,
@@ -205,7 +208,7 @@ QNode.prototype.expand = function(id) {
   this.quadtree.root.refine();
   this.quadtree.root.children[goal_quadrant] = this; // memory leaks?
   this.quadtree.root.coarsen();
-  this.quadtree.insert(id);
+  this.quadtree.insert(obj);
 };
 
 // return a list of objects located in the given region
@@ -235,6 +238,13 @@ QNode.prototype.overlaps = function(region) {
 QNode.prototype.inc_level = function() {
   this.level += 1;
   this.children.map( function(c) { c.inc_level(); } );
+};
+
+// add a list of ids
+QNode.prototype.add_ids = function(ids) {
+  ids.map( function(id) { this.ids[id] = true;
+			  this.quadtree.id_to_node[id][this] = true; },
+	   this );
 };
 
 // clear the ids from this node, updating the relevant datastructures
