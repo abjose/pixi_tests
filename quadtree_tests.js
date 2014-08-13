@@ -103,26 +103,104 @@ QUnit.test( "refine tests", function( assert ) {
   
   // make sure root has no children
   assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the objects are in the right places
+  assert.deepEqual( qt.query({x:0, y:0, w:100, h:100}),
+		    {1:true, 2:true, 3:true, 4:true} );
 
   qt.root.refine();
 
   // make sure root has four children
   assert.deepEqual( qt.root.children.length, 4 );
-
+  // make sure the objects are in the right places
+  assert.deepEqual( qt.root.children[0].query({x:0, y:0, w:100, h:100}),
+		    {1:true} );
+  assert.deepEqual( qt.root.children[1].query({x:0, y:0, w:100, h:100}),
+		    {2:true} );
+  assert.deepEqual( qt.root.children[2].query({x:0, y:0, w:100, h:100}),
+		    {3:true} );
+  assert.deepEqual( qt.root.children[3].query({x:0, y:0, w:100, h:100}),
+		    {4:true} );
 });
 
 /* test coarsen */
 QUnit.test( "coarsen tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var r1 = {id:1, x:0,  y:0,  w:1, h:1};
+  var r2 = {id:2, x:50, y:0,  w:1, h:1};
+  var r3 = {id:3, x:0,  y:50, w:1, h:1};
+  var r4 = {id:4, x:50, y:50, w:1, h:1};
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
 
-  expect(0);
+  // force a refine
+  qt.root.refine();
+
+  // force a coarsen
+  qt.root.coarsen();
+
+  // make sure root has no children
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the objects are in the right places
+  assert.deepEqual( qt.query({x:0, y:0, w:100, h:100}),
+		    {1:true, 2:true, 3:true, 4:true} );
+});
+
+/* test top-down coarsen */
+QUnit.test( "top-down coarsen tests", function( assert ) {
+  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var r1 = {id:1, x:0,  y:0,  w:1, h:1};
+  var r2 = {id:2, x:50, y:0,  w:1, h:1};
+  var r3 = {id:3, x:0,  y:50, w:1, h:1};
+  var r4 = {id:4, x:50, y:50, w:1, h:1};
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
+
+  // force a refine
+  qt.root.refine();
+
+  // force a top-down coarsen
+  qt.root.coarsen_topdown({x:0, y:0, w:100, h:100});
+
+  // make sure root has no children
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the objects are in the right places
+  assert.deepEqual( qt.query({x:0, y:0, w:100, h:100}),
+		    {1:true, 2:true, 3:true, 4:true} );
 });
 
 /* test expand */
 QUnit.test( "expand tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var r1 = {id:1, x:0,  y:0,  w:1, h:1};
+  var r2 = {id:2, x:50, y:0,  w:1, h:1};
+  var r3 = {id:3, x:0,  y:50, w:1, h:1};
+  var r4 = {id:4, x:50, y:50, w:1, h:1};
+  // requires just one expansion
+  var r5 = {id:5, x:150, y:150, w:1, h:1};
+  // require many expansions
+  var r6 = {id:6, x:5000, y:5000, w:1, h:1};
+  var r7 = {id:7, x:500000, y:500000, w:1, h:1};
 
-  expect(0);
+  // insert boring objects
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
+
+  // insert smaller enlarge
+  qt.insert(r5);
+
+  // make sure root has no children
+  assert.deepEqual( qt.root.children.length, 0 );
+  // make sure the objects are in the right places
+  assert.deepEqual( qt.query({x:0, y:0, w:100, h:100}),
+		    {1:true, 2:true, 3:true, 4:true} );
+  // make sure root is proper size
+
 });
 
 /* test insert */
@@ -135,8 +213,6 @@ QUnit.test( "insert tests", function( assert ) {
   var r5 = {id:5, x:20, y:-1000, w:1, h:2000};
   var r6 = {id:6, x:500, y:500, w:1, h:1};
 
-  assert.deepEqual( qt.query({x:-1000, y:-1000, w:2000, h:2000}),
-		    {});
   
   qt.insert(r1);
   qt.insert(r2);
