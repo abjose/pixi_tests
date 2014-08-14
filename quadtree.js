@@ -1,8 +1,6 @@
 "use strict";
 
 /*
-- just go ahead and assume have access to jquery!
-- is having id->object actually useful considering things are references?
 - should allow functions to take lists of things and/or multiple args
 - check to see if 'coarsen' leads to memory leaks
 - replace Object.keys(stuff) with other things? Maybe not that inefficient...
@@ -26,6 +24,40 @@
   also consider compressed quadtree - look stuff up
   make a branch for these things!
   could make only slightly compressed by only refining quadrant that needs it
+  Would be obnoxious to have to check children each time, could write a function
+  to get existing children?
+  Would this basically implement spatial contraction?
+*/
+
+
+/*
+FIRST MODIFICATION: each object only in quadtree once
+TO IMPLEMENT
+- change insert to check to see if child contains the object
+  if so, pass on
+  if not, insert in self
+- change query to 'accumulate' things
+- refine OK? careful, what will happen if you have max_objects nodes at one
+  level that refuse to refine? will have to try to refine each time?
+  maybe worth writing something to figure out what proportion of posessed
+  nodes are refine-able? just return a list (or object) of objects that
+  could be refined - could be called query_refineable and would only
+  have to search local node.
+- coarsen OK? as long as the query to check if should coarsen also counts
+  the ids in the (potentially) coarsening node 
+
+AFTER PASSES TESTS
+- can change obj_to_node to an object of ids instead of object of objects
+- query still has to go to lowest levels...
+*/
+
+/*
+SECOND MODIFICATION: only refine where necessary
+TO IMPLEMENT
+- 
+
+AFTER PASSES TESTS
+-
 */
 
 
@@ -131,6 +163,22 @@ QNode.prototype.insert = function(id) {
   
   // verify the passed object should actually be added
   else if (this.overlaps(obj)) {
+    // see if there's a containing child
+    var child = this.get_containing_child(obj);
+
+    // pass on to containing child if found
+    if (child !== null) child.insert(id);
+
+    else {
+      // otherwise insert into self
+      this.add_ids([id]);
+      // see if we need to refine
+      if (Object.keys(this.ids).length > this.quadtree.max_objects &&
+	 ) {
+
+      }
+    }
+    
     // if have children, pass on to them
     if (this.children.length !== 0) {
       //for(var i=0; i < 4; i++) this.children[i].insert(id);
@@ -254,20 +302,24 @@ QNode.prototype.query = function(region) {
   ));
 };
 
-// see if passed region overlaps this node
-QNode.prototype.overlaps = function(region) {
-  return overlaps(this, region);
-};
+// figure out which of this node's objects could be passed on to children
+QNode.prototype.query_refineable = function() {
+  // won't have children, so need to figure out without them
+  // TODO: move child-region generation to own function
+  var hw = this.w/2, hh = this.h/2;
+  var tl = {x:this.x,    y:this.y,    w:this.hw, h:this.hh},
+      tr = {x:this.x+hw, y:this.y,    w:this.hw, h:this.hh},
+      ll = {x:this.x,    y:this.y+hh, w:this.hw, h:this.hh},
+      lr = {x:this.x+hw, y:this.y+hh, w:this.hw, h:this.hh};
 
-// see if passed region overlaps this node
-QNode.prototype.contains = function(region) {
-  return contains(this, region);
-};
+  // is it even worth doing this? seems inefficient to check every time
+  // when you could instead just attempt to refine every time and only
+  // pass along things that should be refined
 
-// increment all levels in the quadtree
-QNode.prototype.inc_level = function() {
-  this.level += 1;
-  this.children.map( function(c) { c.inc_level(); } );
+  // instead of checking every time, could just maintain two different lists
+  // 'ids_to_refine' and 'ids', and ids_to_refine would only have stuff
+  // before had refined, at which point it would all be passed on to children
+  // and...I guess would only ever refine once?
 };
 
 // add a list of ids
@@ -275,6 +327,17 @@ QNode.prototype.add_ids = function(ids) {
   ids.map( function(id) { this.ids[id] = true;
 			  this.quadtree.obj_to_node[id][this.id] = true; },
 	   this );
+};
+
+
+// clear this node's ids and children
+QNode.prototype.clear = function() {
+  // TODO: memory leaks here???
+  this.clear_ids();
+  // tell children to clear
+  this.clear_children();
+  // remove self from node_ids
+  delete this.quadtree.node_ids[this.id];
 };
 
 // clear the ids from this node, updating the relevant datastructures
@@ -300,14 +363,29 @@ QNode.prototype.clear_children = function() {
   this.children = [];
 };
 
-// clear this node's ids and children
-QNode.prototype.clear = function() {
-  // TODO: memory leaks here???
-  this.clear_ids();
-  // tell children to clear
-  this.clear_children();
-  // remove self from node_ids
-  delete this.quadtree.node_ids[this.id];
+// get child that contains the passed object
+QNode.prototype.get_containing_child = function(obj) {
+  for (var i = 0; i < this.children.length; i++) {
+    if (this.children[i].contains(obj)) return this.children[i]
+  }
+
+  return null;
+};
+
+// see if passed region overlaps this node
+QNode.prototype.overlaps = function(region) {
+  return overlaps(this, region);
+};
+
+// see if passed region overlaps this node
+QNode.prototype.contains = function(region) {
+  return contains(this, region);
+};
+
+// increment all levels in the quadtree
+QNode.prototype.inc_level = function() {
+  this.level += 1;
+  this.children.map( function(c) { c.inc_level(); } );
 };
 
 // check if AABBs r1 and r2 overlap
