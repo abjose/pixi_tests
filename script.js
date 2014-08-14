@@ -36,6 +36,8 @@ var WEIRD_PADDING = 10;
 // create a new instance of a pixi stage
 var interactive = true;
 var stage = new PIXI.Stage(0x66FF99, interactive);
+// add temporary click callback
+stage.click = insert_rectangle;
 
 // create a renderer instance
 //var renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT);
@@ -136,6 +138,17 @@ function animate() {
   
   // render the stage
   renderer.render(stage);
+}
+
+// insert a random-sized rectangle wherever we clicked
+function insert_rectangle(mouseData) {
+  var max_w = 100, max_h = 200;
+  var rect = new PIXI.Graphics();
+  rect.beginFill(0x003355);
+  rect.drawRect(mouseData.global.x, mouseData.global.y,
+		Math.random()*max_w, Math.random()*max_h);
+  stage.addChild(rect);
+  console.log('inserted rectangle!');
 }
 
 function insert_textbox(mouseData) {
