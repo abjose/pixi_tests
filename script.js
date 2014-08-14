@@ -138,16 +138,6 @@ function animate() {
   renderer.render(stage);
 }
 
-function bounce() {
-  // bounce the rectangle on the canvas
-  if (rect_x <= 0 || rect_x+rect_w >= WIDTH) {
-    rect_vel_x *= -1;
-  }
-  if (rect_y <= 0 || rect_y+rect_h >= HEIGHT) {
-    rect_vel_y *= -1;
-  }
-}
-
 function insert_textbox(mouseData) {
   // position appropriately
   textbox.style.top  = rect_y + 'px';
