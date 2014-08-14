@@ -26,13 +26,14 @@
   also consider compressed quadtree - look stuff up
   make a branch for these things!
   could make only slightly compressed by only refining quadrant that needs it
+- default to 1 width and 1 height on query?
 */
 
 
 function Quadtree(args) {
   // required: x, y, w, h
   // optional: max_objects, max_level
-  this.max_objects = args.max_objects || 100;
+  this.max_objects = args.max_objects || 5; //100;
   this.max_level   = args.max_level   || 10;
 
   // id-to-object mapping - is this even necessary?
@@ -309,6 +310,16 @@ QNode.prototype.clear = function() {
   // remove self from node_ids
   delete this.quadtree.node_ids[this.id];
 };
+
+QNode.prototype.draw = function(rect) {
+  rect.beginFill(0xFFFFFF, 0);
+  rect.lineStyle(1, 0x000000);
+  rect.drawRect(this.x, this.y, this.w, this.h);
+
+  // then get children to draw
+  if (this.children.length !== 0)
+    this.children.map( function(c) { c.draw(rect); } );
+}
 
 // check if AABBs r1 and r2 overlap
 function overlaps(r1, r2) {

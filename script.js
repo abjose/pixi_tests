@@ -1,6 +1,7 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
+- do functions need semicolons after? lolz
 - MAKE THINGS CLASSY
 - and drag to translate :D!
 - samer wants physics
@@ -48,6 +49,11 @@ var renderer = new PIXI.CanvasRenderer(WIDTH, HEIGHT);
 document.body.appendChild(renderer.view);
 
 requestAnimFrame(animate);
+
+// quadtree stuff
+var qt = new Quadtree({x:0, y:0, w:WIDTH, h:HEIGHT});
+var qt_rect = new PIXI.Graphics();
+stage.addChild(qt_rect);
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
@@ -119,6 +125,9 @@ function animate() {
     rect_x = mouse_x;
     rect_y = mouse_y;
   }
+
+  // draw the quadtree
+  draw_qt();
   
   // update graphics
   rect_graphics.clear()
@@ -138,18 +147,41 @@ function animate() {
   
   // render the stage
   renderer.render(stage);
-}
+};
+
+// draw the bounds of the quadtree
+function draw_qt() {
+  // just need to draw a rectangle for every child, top-down
+  // hmm, easier to just add a small drawing function to QNode? ehhh.
+  qt_rect.clear();
+  qt.root.draw(qt_rect);
+};
 
 // insert a random-sized rectangle wherever we clicked
 function insert_rectangle(mouseData) {
-  var max_w = 100, max_h = 200;
-  var rect = new PIXI.Graphics();
-  rect.beginFill(0x003355);
-  rect.drawRect(mouseData.global.x, mouseData.global.y,
-		Math.random()*max_w, Math.random()*max_h);
+  var max_w = 5, max_h = 5;
+  /*
+  var region = {x:mouseData.global.x, y:mouseData.global.y,
+	    w:Math.random()*max_w, h:Math.random()*max_h,
+	    id:UUID()};
+  */
+  var rect   = new PIXI.Graphics();
+  var qt_obj = {x:mouseData.global.x, y:mouseData.global.y,
+		w:max_w, h:max_h,
+		id:UUID()};
+  rect.beginFill(0x0077AA);
+  rect.drawRect(qt_obj.x, qt_obj.y, qt_obj.w, qt_obj.h);
   stage.addChild(rect);
-  console.log('inserted rectangle!');
-}
+
+  // insert into quadtree!
+  qt.insert(qt_obj);
+};
+
+// when mouse over part of quadtree, highlight those things
+function highlight_rects(mouseData) {
+  var ids = qt.query({x:mouseData.global.x, y:mouseData.global.y, w:1, h:1});
+  
+};
 
 function insert_textbox(mouseData) {
   // position appropriately
@@ -163,14 +195,14 @@ function insert_textbox(mouseData) {
   rect_clicked = true;
   // remove pixi text
   html_sprite.setTexture(PIXI.Texture.fromCanvas(empty_canvas)); 
-}
+};
 
 function restore_pixi_text(mouseData) {
   // replace pixi text
   render_textbox($(textbox).val(), rect_w, rect_h);
   // hide div
   $(textbox).css('visibility', 'hidden');
-}
+};
 
 function render_textbox(text, width, height) {
   // dangerous??? couldn't someone just pass in arbitrary HTML?
@@ -200,4 +232,4 @@ function render_textbox(text, width, height) {
       console.log('rendering error!');
       console.log(e);
     });
-}
+};
