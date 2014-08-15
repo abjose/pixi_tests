@@ -20,6 +20,7 @@
 - fully taken advantage of objects being in graph only once?
 - sure obj_to_node being used correctly?
 - filter_region still very slow
+- need to worry about overlaps testing and non-integer region coords?
 */
 
 function Quadtree(args) {
@@ -342,7 +343,7 @@ QNode.prototype.draw = function(rect) {
 }
 
 // check if AABBs r1 and r2 overlap
-function overlaps(r1, r2) {
+function overlaps2(r1, r2) {
   // calculate centers and half-dimensions
   var r1hw = r1.w/2, r1hh = r1.h/2, r2hw = r2.w/2, r2hh = r2.h/2;
   var r1c = {x: r1.x+r1hw, y: r1.y+r1hh};
@@ -356,6 +357,12 @@ function overlaps(r1, r2) {
 
   // overlapping if too close not to be
   return (dx < x_sum) && (dy < y_sum);
+};
+
+function overlaps(r1, r2) {
+  var r1x2 = r1.x+r1.w, r1y2 = r1.y+r1.h;
+  var r2x2 = r2.x+r2.w, r2y2 = r2.y+r2.h;
+  return r1.x < r2x2 && r1x2 > r2.x && r1.y < r2y2 && r1y2 > r2.y;
 };
 
 // check if AABB r1 contains AABB r2 (allowing edge contact)
