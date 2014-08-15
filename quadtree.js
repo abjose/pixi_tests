@@ -26,6 +26,7 @@
 - search for and complete TODOs
 - clean up node addition/deletion in general - lots of repetition right now
 - split quadtree / tests/ demo out into own repo
+  also split out quadtree and QNode and 'helper' code? maybe more annoying...
 */
 
 
@@ -76,7 +77,7 @@ Quadtree.prototype.insert = function(obj) {
     throw "The passed object lacks one or more of: x,y,w,h,id.";
   }
   // first need to add to id-to-object map
-  this.obj_ids[obj.id]     = obj;
+  this.obj_ids[obj.id] = obj;
   // then insert into the root - will automatically update obj_to_node
   this.root.insert(obj.id);
 };
@@ -118,6 +119,7 @@ Quadtree.prototype.remove_by_region = function(region) {
 
 // delete all objects from the quadtree (leaving dimensions, etc. the same)
 Quadtree.prototype.clear = function() {
+  // TODO: could remove_by_region...good test to see how well that works.
   this.root = new QNode({x:this.root.x, y:this.root.y,
 			 w:this.root.w, h:this.root.h,
 			 level:0, parent:null, quadtree:this});
@@ -147,7 +149,8 @@ function QNode(args) {
 
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
-  var obj = this.quadtree.obj_ids[id];
+  var obj = this.quadtree.obj_ids[id],
+      c   = this.get_accepting_child(obj);
   
   // check if need to 'expand' to accomodate external region
   if (this.level === 0 && !this.contains(obj)) {
@@ -156,8 +159,6 @@ QNode.prototype.insert = function(id) {
   
   // see if this node has children
   else if (this.children.length !== 0) {
-    // find which (if any) child would want the id
-    var c = this.get_accepting_child(obj);
     // if one wants it, pass it on
     if (c !== -1) this.children[c].insert(id);
     // otherwise unrefineable
@@ -166,9 +167,9 @@ QNode.prototype.insert = function(id) {
 
   // if no children, store in self
   else {
-    // find which (if any) child would want the id
-    var c = this.get_accepting_child(obj);
     // store appropriately based on refine-ability
+    // TODO: MOVE THIS into own function for adding ids
+    // which appropriately passes on to children or stores in refineable or not
     if (c !== -1) this.add_refineable([id]);
     else this.add_unrefineable([id]);
 
@@ -181,16 +182,16 @@ QNode.prototype.insert = function(id) {
 QNode.prototype.refine = function() {
   // create children
   var c = get_child_regions(this);
-  this.children[0] = new QNode({x:x[1].x, y:c[1].y, w:c[1].w, h:c[1].h,
+  this.children[0] = new QNode({x:c[1].x, y:c[1].y, w:c[1].w, h:c[1].h,
 				level:this.level+1, parent:this,
 				quadtree:this.quadtree}); 
-  this.children[1] = new QNode({x:x[2].x, y:c[2].y, w:c[2].w, h:c[2].h,
+  this.children[1] = new QNode({x:c[2].x, y:c[2].y, w:c[2].w, h:c[2].h,
 				level:this.level+1, parent:this,
 				quadtree:this.quadtree});
-  this.children[2] = new QNode({x:x[3].x, y:c[3].y, w:c[3].w, h:c[3].h,
+  this.children[2] = new QNode({x:c[3].x, y:c[3].y, w:c[3].w, h:c[3].h,
 				level:this.level+1, parent:this,
 				quadtree:this.quadtree});
-  this.children[3] = new QNode({x:x[4].x, y:c[4].y, w:c[4].w, h:c[4].h,
+  this.children[3] = new QNode({x:c[4].x, y:c[4].y, w:c[4].w, h:c[4].h,
 				level:this.level+1, parent:this,
 				quadtree:this.quadtree});
   
@@ -204,16 +205,16 @@ QNode.prototype.refine = function() {
 
 // merge children into self (if necessary)
 QNode.prototype.coarsen = function() {
-  // don't need to coarsen if no children...
+  // don't need to coarsen if no children
   if (this.children.length === 0) return;
   
-  // grab ids contained by children
-  var ids = Object.keys(this.query());
-  
+  // grab ids contained by (only) children
+  var ids = Object.keys(this.query(null, null, true));
+
   // do we need to coarsen?
   if (ids.length < this.quadtree.max_objects) {
     // subsume children
-    this.add_refineable(child_ids);
+    this.add_refineable(ids);
     this.clear_children();
     // tell parent that it should consider coarsening
     if (this.parent !== null) this.parent.coarsen();
@@ -245,28 +246,30 @@ QNode.prototype.expand = function(id) {
 };
 
 // return a list of objects located in the given region
-QNode.prototype.query = function(region, filter) {
+QNode.prototype.query = function(region, filter, children_only) {
   // set defaults
   region = region || {x:this.x, y:this.y, w:this.w, h:this.h};
   filter = typeof filter !== 'undefined' ? filter : true;
+  children_only = typeof filter !== 'undefined' ? filter : false;
+  
   // don't return anything if outside query region
   if (!this.overlaps(region)) {
     return {};
   }
 
-  // if inside query region and have no children, return objects
-  if (this.children.length === 0) {
-    if (!filter) return this.get_ids();
-    return filter_region(this.get_ids(), region, this.quadtree.obj_ids);
-  }
-
-  // otherwise ask children
   // TODO: CLEAN THIS UP
-  var child_ids = [].concat.apply([], this.children.map(
+  // query children
+  var ids = [].concat.apply([], this.children.map(
     function(c) { return Object.keys(c.query(region, filter)); }
   ));
-  // must...not...use...for loops...
-  return child_ids.reduce(function(obj, k) { obj[k] = true; return obj; }, {});
+  
+  //tack on own objects before returning (if not children_only)
+  if (!children_only) ids.concat(Object.keys(this.get_ids()));
+  // convert to an object
+  ids = ids.reduce(function(obj, k) { obj[k] = true; return obj; }, {});
+  // filter or not
+  if (!filter) return ids;
+  return filter_region(ids, region, this.quadtree.obj_ids);
 };
 
 // see if passed region overlaps this node
