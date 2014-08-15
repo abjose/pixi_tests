@@ -400,10 +400,12 @@ QUnit.test( "stress tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:1, h:1, max_objects:150, max_level:10});
   var i=0, matches=[];
 
-  for (; i < 1000; i++) {
+  for (; i < 10000; i++) {
     matches.push(String(i));
     var region = {x: Math.random()*w + x, y: Math.random()*h + y,
-		  w: Math.random()*1000, h: Math.random()*1000, id:i};
+		  w: Math.random()*1000, h: Math.random()*1000,
+		  //w: 10, h: 10,
+		  id:i};
     qt.insert(region);
     qt.query(region);
   }
