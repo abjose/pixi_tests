@@ -173,31 +173,6 @@ QUnit.test( "coarsen tests", function( assert ) {
 		    {1:true, 2:true, 3:true, 4:true} );
 });
 
-/* test top-down coarsen */
-QUnit.test( "top-down coarsen tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
-  var r1 = {id:1, x:0,  y:0,  w:1, h:1};
-  var r2 = {id:2, x:50, y:0,  w:1, h:1};
-  var r3 = {id:3, x:0,  y:50, w:1, h:1};
-  var r4 = {id:4, x:50, y:50, w:1, h:1};
-  qt.insert(r1);
-  qt.insert(r2);
-  qt.insert(r3);
-  qt.insert(r4);
-
-  // force a refine
-  qt.root.refine();
-
-  // force a top-down coarsen
-  qt.root.coarsen_topdown({x:0, y:0, w:100, h:100});
-
-  // make sure root has no children
-  assert.deepEqual( qt.root.children.length, 0 );
-  // make sure the objects are in the right places
-  assert.deepEqual( qt.query({x:0, y:0, w:100, h:100}),
-		    {1:true, 2:true, 3:true, 4:true} );
-});
-
 /* test expand */
 QUnit.test( "expand tests", function( assert ) {
   var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
@@ -376,7 +351,7 @@ QUnit.test( "stress tests", function( assert ) {
   var qt = new Quadtree({x:x, y:y, w:w, h:h, max_objects:150, max_level:10});
   var i=0, matches={};
 
-  for (; i < 10000; i++) {
+  for (; i < 100; i++) {
     matches[i] = true;
     var region = {id: i,
 		  x: Math.random()*w + x,
