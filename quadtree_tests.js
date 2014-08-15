@@ -29,6 +29,19 @@ QUnit.test( "overlaps tests", function( assert ) {
   // non-overlaps
   assert.ok( !overlaps(r2, r3) );
   assert.ok( !overlaps(r3, r2) );
+
+  // also test quadtree shape - make sure mutually exclusive!
+  var w = 100, h=100;
+  var tl = {x:0,   y:0,   w:w/2, h:h/2};
+  var tr = {x:w/2, y:0,   w:w/2, h:h/2};
+  var ll = {x:0,   y:w/2, w:w/2, h:h/2};
+  var lr = {x:w/2, y:w/2, w:w/2, h:h/2};
+  assert.ok( !overlaps(tl, tr) );
+  assert.ok( !overlaps(tl, ll) );
+  assert.ok( !overlaps(tl, lr) );
+  assert.ok( !overlaps(tr, ll) );
+  assert.ok( !overlaps(tr, lr) );
+  assert.ok( !overlaps(ll, lr) );
 });
 
 /* test contains */
@@ -57,7 +70,7 @@ QUnit.test( "contains tests", function( assert ) {
 
 /* test filter_region */
 QUnit.test( "filter_region tests", function( assert ) {
-  var r1 = {x:0, y:0, w:100, h:100};
+  var r1 = {x:0, y:0, w:100, h:100, max_objects:50};
   var r2 = {x:10, y:10, w:1, h:1};
   var r3 = {x:10, y:10, w:1, h:1};
   var r4 = {x:10, y:10, w:1, h:1};
@@ -116,7 +129,7 @@ QUnit.test( "sort_by_area tests", function( assert ) {
 
 /* test refine */
 QUnit.test( "refine tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0,  y:0,  w:1, h:1};
   var r2 = {id:2, x:50, y:0,  w:1, h:1};
   var r3 = {id:3, x:0,  y:50, w:1, h:1};
@@ -149,7 +162,7 @@ QUnit.test( "refine tests", function( assert ) {
 
 /* test coarsen */
 QUnit.test( "coarsen tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0,  y:0,  w:1, h:1};
   var r2 = {id:2, x:50, y:0,  w:1, h:1};
   var r3 = {id:3, x:0,  y:50, w:1, h:1};
@@ -174,7 +187,7 @@ QUnit.test( "coarsen tests", function( assert ) {
 
 /* test top-down coarsen */
 QUnit.test( "top-down coarsen tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0,  y:0,  w:1, h:1};
   var r2 = {id:2, x:50, y:0,  w:1, h:1};
   var r3 = {id:3, x:0,  y:50, w:1, h:1};
@@ -199,7 +212,7 @@ QUnit.test( "top-down coarsen tests", function( assert ) {
 
 /* test expand */
 QUnit.test( "expand tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0,  y:0,  w:1, h:1};
   var r2 = {id:2, x:50, y:0,  w:1, h:1};
   var r3 = {id:3, x:0,  y:50, w:1, h:1};
@@ -282,7 +295,7 @@ QUnit.test( "expand tests", function( assert ) {
 
 /* test insert */
 QUnit.test( "insert tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0, y:0, w:100, h:100};
   var r2 = {id:2, x:10, y:10, w:1, h:1};
   var r3 = {id:3, x:10, y:10, w:1, h:1};
@@ -304,7 +317,7 @@ QUnit.test( "insert tests", function( assert ) {
 
 // test remove_by_region
 QUnit.test( "remove_by_region tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0, y:0, w:100, h:100};
   var r2 = {id:2, x:10, y:10, w:1, h:1};
   var r3 = {id:3, x:10, y:10, w:1, h:1};
@@ -327,7 +340,7 @@ QUnit.test( "remove_by_region tests", function( assert ) {
 
 // test remove_by_id
 QUnit.test( "remove_by_id tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0, y:0, w:100, h:100};
   var r2 = {id:2, x:10, y:10, w:1, h:1};
   var r3 = {id:3, x:10, y:10, w:1, h:1};
@@ -350,7 +363,7 @@ QUnit.test( "remove_by_id tests", function( assert ) {
 
 // test clear
 QUnit.test( "clear tests", function( assert ) {
-  var qt = new Quadtree({x:0, y:0, w:100, h:100});
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:50});
   var r1 = {id:1, x:0, y:0, w:100, h:100};
   var r2 = {id:2, x:10, y:10, w:1, h:1};
   var r3 = {id:3, x:10, y:10, w:1, h:1};
@@ -372,10 +385,10 @@ QUnit.test( "clear tests", function( assert ) {
 // stress tests
 QUnit.test( "stress tests", function( assert ) {
   var x=-2000, y=-2000, w=4000, h=4000;
-  var qt = new Quadtree({x:x, y:y, w:w, h:h});
+  var qt = new Quadtree({x:x, y:y, w:w, h:h, max_objects:150, max_level:10});
   var i=0, matches={};
 
-  for (; i < 10000; i++) {
+  for (; i < 50; i++) {
     matches[i] = true;
     qt.insert({id: i,
 	       x: Math.random()*w + x,
@@ -387,4 +400,26 @@ QUnit.test( "stress tests", function( assert ) {
   
   qt.clear();
   assert.deepEqual( qt.query(), {});
+});
+
+
+// query after refine tests
+QUnit.test( "query after refine test", function( assert ) {
+  // set max_objects very low, will refine with 1 object in each region
+  var qt = new Quadtree({x:0, y:0, w:100, h:100, max_objects:3});
+
+  // make rects to go in each region
+  var r1 = {id:0, x:10, y:10, w:1, h:1};
+  var r2 = {id:1, x:60, y:10, w:1, h:1};
+  var r3 = {id:2, x:10, y:60, w:1, h:1};
+  var r4 = {id:3, x:60, y:60, w:1, h:1};
+  qt.insert(r1);
+  qt.insert(r2);
+  qt.insert(r3);
+  qt.insert(r4);
+
+  // query top-left
+  assert.deepEqual( qt.query({x:20, y:20, w:1, h:1}, false),
+		    {0:true} );
+  
 });
