@@ -182,10 +182,8 @@ function highlight_rects() {
   // should recolor all default color, then color highlighted ones different?
   // instead of redrawing everything all the time
   var all = qt.query(null, false);
-  all = Object.keys(all);
   var mouse = stage.getMousePosition();
   var ids = qt.query({x:mouse.x, y:mouse.y, w:1, h:1}, false);
-  ids = Object.keys(ids);
   
   for (var i=0; i < all.length; i++) {
     var obj = qt.obj_ids[all[i]];
