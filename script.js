@@ -51,10 +51,9 @@ document.body.appendChild(renderer.view);
 requestAnimFrame(animate);
 
 // quadtree stuff
-var qt = new Quadtree({x:0, y:0, w:WIDTH, h:HEIGHT});
+var qt = new Quadtree({x:150, y:320, w:100, h:100});
 var qt_rect = new PIXI.Graphics();
 stage.addChild(qt_rect);
-var qt_id = 0;
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
@@ -162,16 +161,12 @@ function draw_qt() {
 // insert a random-sized rectangle wherever we clicked
 function insert_rectangle(mouseData) {
   var max_w = 5, max_h = 5;
-  /*
-  var region = {x:mouseData.global.x, y:mouseData.global.y,
-	    w:Math.random()*max_w, h:Math.random()*max_h,
-	    id:UUID()};
-  */
   var rect   = new PIXI.Graphics();
   var qt_obj = {x:mouseData.global.x, y:mouseData.global.y,
 		w:max_w, h:max_h,
+		//w:Math.random()*max_w, h:Math.random()*max_h,
 		id:UUID(), rect:rect};
-  qt_obj.id = qt_id; qt_id += 1;
+  // fill in
   rect.beginFill(0x0077AA);
   rect.drawRect(qt_obj.x, qt_obj.y, qt_obj.w, qt_obj.h);
   stage.addChild(rect);

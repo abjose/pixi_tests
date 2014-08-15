@@ -390,11 +390,13 @@ QUnit.test( "stress tests", function( assert ) {
 
   for (; i < 10000; i++) {
     matches[i] = true;
-    qt.insert({id: i,
-	       x: Math.random()*w + x,
-	       y: Math.random()*h + y,
-	       w: Math.random()*100,
-	       h: Math.random()*100});
+    var region = {id: i,
+		  x: Math.random()*w + x,
+		  y: Math.random()*h + y,
+		  w: Math.random()*100,
+		  h: Math.random()*100};
+    qt.insert(region);
+    qt.query(region);
   }
   assert.deepEqual( qt.query(), matches);
   

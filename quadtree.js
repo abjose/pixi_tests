@@ -17,18 +17,13 @@
   do that stuff - so maybe this code will actually be useful to someone else.
 - allow quadtree to shrink if don't need to be as large as it is? i.e. have a 
   spatial "contract" in addition to "expand"
-- stress tests - seems to get into infinite loop? super fast up to 150 
-  insertions...then becomes really slow.
-  But why isn't stuff being printed out?!?!?!
 - obj_to_node and obj_ids not being updated?
 - because having objects at low levels seems bad - reconsider keeping large
   objects at largest common ancestor?
   also consider compressed quadtree - look stuff up
   make a branch for these things!
   could make only slightly compressed by only refining quadrant that needs it
-- SEEMS TO BE LEAKING NODES ON STRESS TEST!!! (for large numbers of inserts)
 */
-
 
 function Quadtree(args) {
   // required: x, y, w, h
@@ -101,7 +96,9 @@ Quadtree.prototype.remove_by_region = function(region) {
 
 // delete all objects from the quadtree (leaving dimensions, etc. the same)
 Quadtree.prototype.clear = function() {
-  this.root.children = []; // MEMORY LEAKS?!?!?!?!?!
+  this.root = new QNode({x:this.root.x, y:this.root.y,
+			 w:this.root.w, h:this.root.h,
+			 level:0, parent:null, quadtree:this});
   this.root.ids    = {};
   this.obj_ids     = {};
   this.obj_to_node = {};
