@@ -5,6 +5,8 @@
 - make sure proper number of subtrees after inserting and removing lots of nodes
 - WEIRD BEHAVIOR for very large enlarges
 - verify doesn't exceed max depth or max objects under normal insertion
+- test get_accepting_child
+- test get_ids
 */
 
 /* test overlaps */
@@ -111,20 +113,6 @@ QUnit.test( "filter_region adjacency tests", function( assert ) {
 
   assert.deepEqual( filter_region(ids, r, id_to_obj),
 		    {1:true} );
-});
-
-/* test sort_by_area */
-QUnit.test( "sort_by_area tests", function( assert ) {
-  var r1 = {w:100, h:100};
-  var r2 = {w:1, h:1};
-  var r3 = {w:3, h:1};
-  var r4 = {w:2, h:1};
-  var r5 = {w:1, h:2000};
-
-  assert.deepEqual( sort_by_area([r1, r2, r3, r4, r5]),
-		    [r1, r5, r3, r4, r2] );
-
-  // test for error if one doesn't have w and h fields?
 });
 
 /* test refine */
