@@ -2,35 +2,24 @@
 
 /*
 - check to see if 'coarsen' leads to memory leaks
-- replace Object.keys(stuff) with other things? Maybe not that inefficient...
 - replace max_objects with refine_thresh and coarsen_thresh
-- test out coarsen vs. coarsen_topdown - maybe use topdown in remove_by_region?
 - currently can violate max_depth via expand - worth fixing?
-- add nice way to visualize quadtree to help verify working? ideally can
-  click to add points...
-  maybe just implement this as you're implementing canvas stuff
 - consider adding coarsen-topdown back in
 - wait, aren't you supposed to have a hash of tags at each leaf?
   I guess reasonable to not include that here, but wrap quadtree to it can
   do that stuff - so maybe this code will actually be useful to someone else.
 - allow quadtree to shrink if don't need to be as large as it is? i.e. have a 
   spatial "contract" in addition to "expand"
-- obj_to_node and obj_ids not being updated?
-- because having objects at low levels seems bad - reconsider keeping large
-  objects at largest common ancestor?
-  also consider compressed quadtree - look stuff up
-  make a branch for these things!
-  could make only slightly compressed by only refining quadrant that needs it
 - DO THIS should allow functions to take lists of things and/or multiple args
 - remember to update datastructures...
 - search for and complete TODOs
 - clean up node addition/deletion in general - lots of repetition right now
 - split quadtree / tests/ demo out into own repo
   also split out quadtree and QNode and 'helper' code? maybe more annoying...
-- set stress tests back to 10000 or whatever
 - something going wrong with expand - seem to lose track of nodes
 - fully taken advantage of objects being in graph only once?
 - sure obj_to_node being used correctly?
+- filter_region still very slow
 */
 
 function Quadtree(args) {
@@ -243,12 +232,14 @@ QNode.prototype.query = function(region, filter, children_only) {
     function(c) { return c.query(region, filter); }
   ));
 
-  // tack on own objects (if not children_only)
-  if (!children_only) ids = ids.concat(this.get_ids());
-  
-  // filter or not
-  if (!filter) return ids;
-  return filter_region(ids, region, this.quadtree.obj_ids);
+  // add on own objects (if not children_only)
+  if (!children_only) {
+    if (!filter) ids = ids.concat(this.get_ids());
+    else ids = ids.concat(filter_region(this.get_ids(), region,
+					this.quadtree.obj_ids));
+  }
+
+  return ids;
 };
 
 // see if passed region overlaps this node
@@ -353,14 +344,15 @@ QNode.prototype.draw = function(rect) {
 // check if AABBs r1 and r2 overlap
 function overlaps(r1, r2) {
   // calculate centers and half-dimensions
-  var r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
-  var r2c = {x: r2.x+r2.w/2, y: r2.y+r2.h/2};
+  var r1hw = r1.w/2, r1hh = r1.h/2, r2hw = r2.w/2, r2hh = r2.h/2;
+  var r1c = {x: r1.x+r1hw, y: r1.y+r1hh};
+  var r2c = {x: r2.x+r2hw, y: r2.y+r2hh};
   
   // see if distance between centers is less than corresponding dimensions
   var dx = Math.abs(r1c.x - r2c.x);
   var dy = Math.abs(r1c.y - r2c.y);
-  var x_sum = r1.w/2 + r2.w/2;
-  var y_sum = r1.h/2 + r2.h/2;
+  var x_sum = r1hw + r2hw;
+  var y_sum = r1hh + r2hh;
 
   // overlapping if too close not to be
   return (dx < x_sum) && (dy < y_sum);
