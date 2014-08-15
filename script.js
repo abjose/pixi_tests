@@ -54,6 +54,7 @@ requestAnimFrame(animate);
 var qt = new Quadtree({x:0, y:0, w:WIDTH, h:HEIGHT});
 var qt_rect = new PIXI.Graphics();
 stage.addChild(qt_rect);
+var qt_id = 0;
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
@@ -128,6 +129,7 @@ function animate() {
 
   // draw the quadtree
   draw_qt();
+  highlight_rects();
   
   // update graphics
   rect_graphics.clear()
@@ -168,7 +170,8 @@ function insert_rectangle(mouseData) {
   var rect   = new PIXI.Graphics();
   var qt_obj = {x:mouseData.global.x, y:mouseData.global.y,
 		w:max_w, h:max_h,
-		id:UUID()};
+		id:UUID(), rect:rect};
+  qt_obj.id = qt_id; qt_id += 1;
   rect.beginFill(0x0077AA);
   rect.drawRect(qt_obj.x, qt_obj.y, qt_obj.w, qt_obj.h);
   stage.addChild(rect);
@@ -178,9 +181,27 @@ function insert_rectangle(mouseData) {
 };
 
 // when mouse over part of quadtree, highlight those things
-function highlight_rects(mouseData) {
-  var ids = qt.query({x:mouseData.global.x, y:mouseData.global.y, w:1, h:1});
+function highlight_rects() {
+  // TODO: Move this stuff out of here to a demo file for quadtree?
+  //       or just copy into a demo to keep for later...
+  // should recolor all default color, then color highlighted ones different?
+  // instead of redrawing everything all the time
+  var all = qt.query(null, false);
+  all = Object.keys(all);
+  var mouse = stage.getMousePosition();
+  var ids = qt.query({x:mouse.x, y:mouse.y, w:1, h:1}, false);
+  ids = Object.keys(ids);
   
+  for (var i=0; i < all.length; i++) {
+    var obj = qt.obj_ids[all[i]];
+    obj.rect.beginFill(0x0077AA);
+    obj.rect.drawRect(obj.x, obj.y, obj.w, obj.h);
+  }
+  for (var i=0; i < ids.length; i++) {
+    var obj = qt.obj_ids[ids[i]];
+    obj.rect.beginFill(0xFF0000);
+    obj.rect.drawRect(obj.x, obj.y, obj.w, obj.h);
+  }
 };
 
 function insert_textbox(mouseData) {
