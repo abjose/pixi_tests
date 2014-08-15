@@ -1,9 +1,6 @@
 "use strict";
 
 /*
-- just go ahead and assume have access to jquery!
-- is having id->object actually useful considering things are references?
-- should allow functions to take lists of things and/or multiple args
 - check to see if 'coarsen' leads to memory leaks
 - replace Object.keys(stuff) with other things? Maybe not that inefficient...
 - replace max_objects with refine_thresh and coarsen_thresh
@@ -23,6 +20,8 @@
   also consider compressed quadtree - look stuff up
   make a branch for these things!
   could make only slightly compressed by only refining quadrant that needs it
+- DO THIS should allow functions to take lists of things and/or multiple args
+- remember to update datastructures...
 */
 
 
@@ -142,6 +141,8 @@ function QNode(args) {
 
   // keep track of ids of objects belonging to this node
   this.ids = {};
+  this.ids.refineable = {};   // ids that could be sent to a child
+  this.ids.unrefineable = {}; // ids that must stay at this level
   this.quadtree.obj_to_node[this.id] = {};
 };  
 
@@ -154,88 +155,74 @@ QNode.prototype.insert = function(id) {
     this.expand(id);
   }
   
-  // verify the passed object should actually be added
-  else if (this.overlaps(obj)) {
-    // if have children, pass on to them
-    if (this.children.length !== 0) {
-      this.children.map( function(c) { c.insert(id); } );
-    } else {
-      // no children, add to self
-      this.add_ids([id]);
-      // need to refine if have too many objects at this level
-      if (Object.keys(this.ids).length > this.quadtree.max_objects &&
-	  this.level < this.quadtree.max_level) {
-	this.refine();
-      }
-    }
+  // see if this node has children
+  else if (this.children.length !== 0) {
+    // find which (if any) child would want the id
+    var c = this.get_accepting_child(obj);
+    // if one wants it, pass it on
+    if (c !== -1) this.children[c].insert(id);
+    // otherwise unrefineable
+    else this.add_unrefineable([id]);
+  }
+
+  // if no children, store in self
+  else {
+    // find which (if any) child would want the id
+    var c = this.get_accepting_child(obj);
+    // store appropriately based on refine-ability
+    if (c !== -1) this.add_refineable([id]);
+    else this.add_unrefineable([id]);
+
+    // see if we should refine - only check refineable
+    if (Object.keys(this.ids.refineable).length > this.max_objects)
+      this.refine();
   }
 };
 
 QNode.prototype.refine = function() {
   // create children
-  var x=this.x, y=this.y, hw = this.w/2, hh = this.h/2, newlevel=this.level+1;
-  this.children[0] = new QNode({x:x,    y:y,    w:hw, h:hh, level:newlevel, //UL
-				parent:this, quadtree:this.quadtree}); 
-  this.children[1] = new QNode({x:x+hw, y:y,    w:hw, h:hh, level:newlevel, //UR
-				parent:this, quadtree:this.quadtree});
-  this.children[2] = new QNode({x:x,    y:y+hh, w:hw, h:hh, level:newlevel, //LL
-				parent:this, quadtree:this.quadtree});
-  this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel, //LR
-				parent:this, quadtree:this.quadtree});
-  // populate children with own ids
-  this.children.map(
-    function(c) {
-      Object.keys(this.ids).map( function(id) { c.insert(id); } ) },
-    this
-  );
+  var c = get_child_regions(this);
+  this.children[0] = new QNode({x:x[1].x, y:c[1].y, w:c[1].w, h:c[1].h,
+				level:this.level+1, parent:this,
+				quadtree:this.quadtree}); 
+  this.children[1] = new QNode({x:x[2].x, y:c[2].y, w:c[2].w, h:c[2].h,
+				level:this.level+1, parent:this,
+				quadtree:this.quadtree});
+  this.children[2] = new QNode({x:x[3].x, y:c[3].y, w:c[3].w, h:c[3].h,
+				level:this.level+1, parent:this,
+				quadtree:this.quadtree});
+  this.children[3] = new QNode({x:x[4].x, y:c[4].y, w:c[4].w, h:c[4].h,
+				level:this.level+1, parent:this,
+				quadtree:this.quadtree});
+  
+  // now that node has children, give them refineable objects
+  Object.keys(this.ids.refineable).map( function(id) {
+    this.insert(id); }, this);
 
   // clear own ids
-  this.clear_ids();
+  this.clear_refineable();
 };
 
 // merge children into self (if necessary)
 QNode.prototype.coarsen = function() {
-  // do we have children?
-  if (this.children.length !== 0) {
-    // grab children's ids
-    var child_ids = this.query({x:this.x, y:this.y, w:this.w, h:this.h});
-    
-    // do we need to coarsen?
-    if (Object.keys(child_ids).length < this.quadtree.max_objects) {
-      // subsume and destroy children
-      this.clear_children();
-      this.add_ids(Object.keys(child_ids));
-      // tell parent that it should consider coarsening
-      if (this.parent !== null) this.parent.coarsen();
-    }
-  }
-};
-
-// merge children into self in a top-down way
-QNode.prototype.coarsen_topdown = function(region, filtered_ids) {
-  // if self intersects with region to coarsen...
-  if (this.overlaps(region)) {
-    // do initial query if no ids passed
-    filtered_ids = filtered_ids || this.query(region);
-
-    // filter passed ids to own region
-    filtered_ids = filter_region(filtered_ids, region, this.quadtree.obj_ids);
-
-    // if few enough filtered ids, coarsen
-    if (Object.keys(filtered_ids).length < this.quadtree.max_objects) {
-      this.add_ids(Object.keys(filtered_ids));
-      this.clear_children();
-    } else if (this.children.length !== 0) {
-      // if didn't coarsen, tell children to try (passing newly filtered ids)
-      this.children.map(function(c) {c.coarsen_topdown(region, filtered_ids) });
-    }
+  // don't need to coarsen if no children...
+  if (this.children.length === 0) return;
+  
+  // grab ids contained by children
+  var ids = Object.keys(this.query());
+  
+  // do we need to coarsen?
+  if (ids.length < this.quadtree.max_objects) {
+    // subsume children
+    this.add_refineable(child_ids);
+    this.clear_children();
+    // tell parent that it should consider coarsening
+    if (this.parent !== null) this.parent.coarsen();
   }
 };
 
 // expand to accomodate object external to current quadtree
 QNode.prototype.expand = function(id) {
-  // TODO: do some checks?
-  
   // figure out what quadrant to expand towards
   var obj = this.quadtree.obj_ids[id];
   var self_center = {x: this.x+this.w/2, y: this.y+this.h/2};
@@ -260,6 +247,8 @@ QNode.prototype.expand = function(id) {
 
 // return a list of objects located in the given region
 QNode.prototype.query = function(region, filter) {
+  // set defaults
+  region = region || {x:this.x, y:this.y, w:this.w, h:this.h};
   filter = typeof filter !== 'undefined' ? filter : true;
   // don't return anything if outside query region
   if (!this.overlaps(region)) {
@@ -268,19 +257,17 @@ QNode.prototype.query = function(region, filter) {
 
   // if inside query region and have no children, return objects
   if (this.children.length === 0) {
-    if (!filter) return this.ids;
-    return filter_region(this.ids, region, this.quadtree.obj_ids);
+    if (!filter) return this.get_ids();
+    return filter_region(this.get_ids(), region, this.quadtree.obj_ids);
   }
 
+  // otherwise ask children
   // TODO: CLEAN THIS UP
   var child_ids = [].concat.apply([], this.children.map(
     function(c) { return Object.keys(c.query(region, filter)); }
   ));
-
   // must...not...use...for loops...
-  return child_ids.reduce(function(obj, k) {
-    obj[k] = true; return obj;
-  }, {});
+  return child_ids.reduce(function(obj, k) { obj[k] = true; return obj; }, {});
 };
 
 // see if passed region overlaps this node
@@ -293,29 +280,52 @@ QNode.prototype.contains = function(region) {
   return contains(this, region);
 };
 
+QNode.prototype.get_accepting_child = function(region) {
+  return get_accepting_child(this, region);
+};
+
 // increment all levels in the quadtree
 QNode.prototype.inc_level = function() {
   this.level += 1;
   this.children.map( function(c) { c.inc_level(); } );
 };
 
-// add a list of ids
-QNode.prototype.add_ids = function(ids) {
-  ids.map(
-    function(id) { this.ids[id] = true;
-		   this.quadtree.obj_to_node[id][this.id] = true; },
-    this );
+QNode.prototype.get_ids = function() {
+  return $.extend({}, this.id.refineable, this.ids.unrefineable);
+}
+
+// TODO: collapse these into one!
+QNode.prototype.add_refineable = function(ids) {
+  ids.map( function(id) { this.ids.refineable[id] = true;
+			  this.quadtree.obj_to_node[id][this.id] = true; },
+	   this );
+};
+QNode.prototype.add_unrefineable = function(ids) {
+  ids.map( function(id) { this.ids.unrefineable[id] = true;
+			  this.quadtree.obj_to_node[id][this.id] = true; },
+	   this );
 };
 
+// TODO: collapse these into one!
 // clear the ids from this node, updating the relevant datastructures
-QNode.prototype.clear_ids = function() {
+QNode.prototype.clear_refineable = function() {
   // remove references to this node from obj_to_node
-  Object.keys(this.ids).map(
+  Object.keys(this.ids.refineable).map(
     function(id) { delete this.quadtree.obj_to_node[id][this.id]; }, this
   );
   
   // clear ids
-  this.ids = {};
+  this.ids.refineable = {};
+};
+// clear the ids from this node, updating the relevant datastructures
+QNode.prototype.clear_unrefineable = function() {
+  // remove references to this node from obj_to_node
+  Object.keys(this.ids.unrefineable).map(
+    function(id) { delete this.quadtree.obj_to_node[id][this.id]; }, this
+  );
+  
+  // clear ids
+  this.ids.unrefineable = {};
 };
 
 // tell children to clear themselves
@@ -330,7 +340,8 @@ QNode.prototype.clear_children = function() {
 // clear this node's ids and children
 QNode.prototype.clear = function() {
   // TODO: memory leaks here???
-  this.clear_ids();
+  this.clear_refineable();
+  this.clear_unrefineable();
   // tell children to clear
   this.clear_children();
   // remove self from node_ids
@@ -381,6 +392,21 @@ function filter_region(ids, region, obj_ids) {
   // then construct and return an id object from the filtered keys
   for (; i < keys.length; i++) obj[keys[i]] = true;
   return obj;
+};
+
+function get_child_regions(region) {
+  var hw = region.w/2, hh = region.h/2;
+  return {1: {x:region.x,    y:region.y,    w:hw, h:hh},  // upper-left
+	  2: {x:region.x+hw, y:region.y,    w:hw, h:hh},  // upper-right
+	  3: {x:region.x,    y:region.y+hh, w:hw, h:hh},  // lower-left
+	  4: {x:region.x+hw, y:region.y+hh, w:hw, h:hh}}; // lower-right
+};
+
+// return -1 or the index of the accepting child
+function get_accepting_child(node, region) {
+  var c = get_child_regions(node);
+  return -1 + 1*contains(c[1], region) + 2*contains(c[2], region) +
+    3*contains(c[3], region) + 4*contains(c[4], region);
 };
 
 // generate a random 'guid'
