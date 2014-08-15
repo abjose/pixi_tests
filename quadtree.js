@@ -27,11 +27,13 @@
 - clean up node addition/deletion in general - lots of repetition right now
 - split quadtree / tests/ demo out into own repo
   also split out quadtree and QNode and 'helper' code? maybe more annoying...
+- set stress tests back to 10000 or whatever
+- something going wrong with expand - seem to lose track of nodes
 */
 
 
 /*
-FIRST MODIFICATION: each object only in quadtree once
+FIRST MODIFICATION: each object in quadtree once
 TO IMPLEMENT
 - change insert to check to see if child contains the object
   if so, pass on
@@ -102,7 +104,8 @@ Quadtree.prototype.remove_by_id = function(id) {
 
   // tell it to remove the object and try to coarsen
   // TODO: add object removal to node...
-  delete node.ids[id];
+  //delete node.ids[id];
+  node.remove_id(id);
   if (node.parent !== null) node.parent.coarsen();
   
   // then remove the object from obj_ids
@@ -174,9 +177,12 @@ QNode.prototype.insert = function(id) {
     else this.add_unrefineable([id]);
 
     // see if we should refine - only check refineable
-    if (Object.keys(this.ids.refineable).length > this.max_objects)
+    if (Object.keys(this.ids.refineable).length > this.quadtree.max_objects)
       this.refine();
   }
+
+  //console.log('refineable:',  Object.keys(this.ids.refineable).length,
+  //            'unrefineable', Object.keys(this.ids.unrefineable).length);
 };
 
 QNode.prototype.refine = function() {
@@ -211,11 +217,15 @@ QNode.prototype.coarsen = function() {
   // grab ids contained by (only) children
   var ids = Object.keys(this.query(null, null, true));
 
+  // one thing wrong - can't always assume children's nodes will
+  // be refineable?
+  // actually I think this is ok...
+  
   // do we need to coarsen?
-  if (ids.length < this.quadtree.max_objects) {
+  if (ids.length <= this.quadtree.max_objects) {
     // subsume children
-    this.add_refineable(ids);
     this.clear_children();
+    this.add_refineable(ids);
     // tell parent that it should consider coarsening
     if (this.parent !== null) this.parent.coarsen();
   }
@@ -247,27 +257,29 @@ QNode.prototype.expand = function(id) {
 
 // return a list of objects located in the given region
 QNode.prototype.query = function(region, filter, children_only) {
+  // TODO: CLEAN THIS UP
   // set defaults
   region = region || {x:this.x, y:this.y, w:this.w, h:this.h};
   filter = typeof filter !== 'undefined' ? filter : true;
   children_only = typeof filter !== 'undefined' ? filter : false;
   
   // don't return anything if outside query region
-  if (!this.overlaps(region)) {
-    return {};
-  }
+  if (!this.overlaps(region)) return {};
 
-  // TODO: CLEAN THIS UP
   // query children
   var ids = [].concat.apply([], this.children.map(
     function(c) { return Object.keys(c.query(region, filter)); }
   ));
+
+  //console.log(ids);
   
-  //tack on own objects before returning (if not children_only)
-  if (!children_only) ids.concat(Object.keys(this.get_ids()));
-  // convert to an object
+  // tack on own objects (if not children_only)
+  if (!children_only) ids = ids.concat(Object.keys(this.get_ids()));
+  
+  // convert to an object before returning
   ids = ids.reduce(function(obj, k) { obj[k] = true; return obj; }, {});
   // filter or not
+  //console.log(ids);
   if (!filter) return ids;
   return filter_region(ids, region, this.quadtree.obj_ids);
 };
@@ -292,9 +304,20 @@ QNode.prototype.inc_level = function() {
   this.children.map( function(c) { c.inc_level(); } );
 };
 
+QNode.prototype.add_id = function(id) {
+  // TODO
+};
+
+QNode.prototype.remove_id = function(id) {
+  // try to remove from both lists
+  if      (id in this.ids.unrefineable) delete this.ids.unrefineable[id];
+  else if (id in this.ids.refineable)   delete this.ids.refineable[id];
+};
+
 QNode.prototype.get_ids = function() {
-  return $.extend({}, this.id.refineable, this.ids.unrefineable);
-}
+  //console.log($.extend({}, this.ids.refineable, this.ids.unrefineable));
+  return $.extend({}, this.ids.refineable, this.ids.unrefineable);
+};
 
 // TODO: collapse these into one!
 QNode.prototype.add_refineable = function(ids) {
