@@ -34,7 +34,7 @@ function Quadtree(args) {
   // required: x, y, w, h
   // optional: max_objects, max_level
   this.max_objects = args.max_objects || 5; //100;
-  this.max_level   = args.max_level   || 2; //10
+  this.max_level   = args.max_level   || 10;
 
   // id-to-object mapping - is this even necessary?
   this.obj_ids     = {};
@@ -135,8 +135,7 @@ QNode.prototype.insert = function(id) {
   }
   
   // verify the passed object should actually be added
-  //else if (this.overlaps(obj)) {
-  else if (this.contains(obj)) {
+  else if (this.overlaps(obj)) {
     // if have children, pass on to them
     if (this.children.length !== 0) {
       this.children.map( function(c) { c.insert(id); } );

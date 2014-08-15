@@ -388,7 +388,7 @@ QUnit.test( "stress tests", function( assert ) {
   var qt = new Quadtree({x:x, y:y, w:w, h:h, max_objects:150, max_level:10});
   var i=0, matches={};
 
-  for (; i < 50; i++) {
+  for (; i < 10000; i++) {
     matches[i] = true;
     qt.insert({id: i,
 	       x: Math.random()*w + x,
