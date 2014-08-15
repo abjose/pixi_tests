@@ -51,6 +51,7 @@ TO IMPLEMENT
 AFTER PASSES TESTS
 - can change obj_to_node to an object of ids instead of object of objects
 - query still has to go to lowest levels...
+- know each object only in tree once!! can optimize based on this?
 */
 
 
@@ -115,7 +116,7 @@ Quadtree.prototype.remove_by_id = function(id) {
 // remove all elements in a given region
 Quadtree.prototype.remove_by_region = function(region) {
   // query root to figure out what ids are in the passed region
-  var ids = Object.keys(this.query(region));
+  var ids = this.query(region);
   // kill them all
   ids.map( function(id) { this.remove_by_id(id); }, this );  
 };
@@ -126,7 +127,8 @@ Quadtree.prototype.clear = function() {
   this.root = new QNode({x:this.root.x, y:this.root.y,
 			 w:this.root.w, h:this.root.h,
 			 level:0, parent:null, quadtree:this});
-  this.root.ids    = {};
+  this.root.ids.refineable   = {};
+  this.root.ids.unrefineable = {};
   this.obj_ids     = {};
   this.obj_to_node = {};
 };
@@ -212,11 +214,7 @@ QNode.prototype.coarsen = function() {
   if (this.children.length === 0) return;
   
   // grab ids contained by (only) children
-  var ids = Object.keys(this.query(null, null, true));
-
-  // one thing wrong - can't always assume children's nodes will
-  // be refineable?
-  // actually I think this is ok...
+  var ids = this.query(null, null, true);
   
   // do we need to coarsen?
   if (ids.length <= this.quadtree.max_objects) {
@@ -254,25 +252,22 @@ QNode.prototype.expand = function(id) {
 
 // return a list of objects located in the given region
 QNode.prototype.query = function(region, filter, children_only) {
-  // TODO: CLEAN THIS UP
   // set defaults
   region = region || {x:this.x, y:this.y, w:this.w, h:this.h};
   filter = typeof filter !== 'undefined' ? filter : true;
   children_only = typeof children_only !== 'undefined' ? filter : false;
   
   // don't return anything if outside query region
-  if (!this.overlaps(region)) return {};
+  if (!this.overlaps(region)) return [];
 
   // query children
   var ids = [].concat.apply([], this.children.map(
-    function(c) { return Object.keys(c.query(region, filter)); }
+    function(c) { return c.query(region, filter); }
   ));
 
   // tack on own objects (if not children_only)
-  if (!children_only) ids = [].concat(ids, Object.keys(this.get_ids()));
+  if (!children_only) ids = ids.concat(this.get_ids());
   
-  // convert to an object before returning
-  ids = ids.reduce(function(obj, k) { obj[k] = true; return obj; }, {});
   // filter or not
   if (!filter) return ids;
   return filter_region(ids, region, this.quadtree.obj_ids);
@@ -309,7 +304,8 @@ QNode.prototype.remove_id = function(id) {
 };
 
 QNode.prototype.get_ids = function() {
-  return $.extend({}, this.ids.refineable, this.ids.unrefineable);
+  return [].concat(Object.keys(this.ids.refineable),
+		   Object.keys(this.ids.unrefineable));
 };
 
 // TODO: collapse these into one!
@@ -401,15 +397,7 @@ function contains(r1, r2) {
 
 // return object of ids internal to passed region
 function filter_region(ids, region, obj_ids) {
-  var i = 0, obj = {};
-  // filter out external objects by id
-  var keys = Object.keys(ids).filter( function(id) {
-    return overlaps(region, obj_ids[id]);
-  });
-  
-  // then construct and return an id object from the filtered keys
-  for (; i < keys.length; i++) obj[keys[i]] = true;
-  return obj;
+  return ids.filter( function(id) { return overlaps(region, obj_ids[id]); });
 };
 
 function get_child_regions(region) {
