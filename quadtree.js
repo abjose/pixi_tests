@@ -29,31 +29,9 @@
   also split out quadtree and QNode and 'helper' code? maybe more annoying...
 - set stress tests back to 10000 or whatever
 - something going wrong with expand - seem to lose track of nodes
+- fully taken advantage of objects being in graph only once?
+- sure obj_to_node being used correctly?
 */
-
-
-/*
-FIRST MODIFICATION: each object in quadtree once
-TO IMPLEMENT
-- change insert to check to see if child contains the object
-  if so, pass on
-  if not, insert in self
-- change query to 'accumulate' things
-- refine OK? careful, what will happen if you have max_objects nodes at one
-  level that refuse to refine? will have to try to refine each time?
-  maybe worth writing something to figure out what proportion of posessed
-  nodes are refine-able? just return a list (or object) of objects that
-  could be refined - could be called query_refineable and would only
-  have to search local node.
-- coarsen OK? as long as the query to check if should coarsen also counts
-  the ids in the (potentially) coarsening node 
-
-AFTER PASSES TESTS
-- can change obj_to_node to an object of ids instead of object of objects
-- query still has to go to lowest levels...
-- know each object only in tree once!! can optimize based on this?
-*/
-
 
 function Quadtree(args) {
   // required: x, y, w, h
