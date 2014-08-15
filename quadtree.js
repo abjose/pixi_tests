@@ -359,6 +359,7 @@ function overlaps2(r1, r2) {
   return (dx < x_sum) && (dy < y_sum);
 };
 
+// http://stackoverflow.com/questions/306316/determine-if-two-rectangles-overlap-each-other
 function overlaps(r1, r2) {
   var r1x2 = r1.x+r1.w, r1y2 = r1.y+r1.h;
   var r2x2 = r2.x+r2.w, r2y2 = r2.y+r2.h;
