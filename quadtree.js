@@ -26,7 +26,7 @@
   also consider compressed quadtree - look stuff up
   make a branch for these things!
   could make only slightly compressed by only refining quadrant that needs it
-- default to 1 width and 1 height on query?
+- SEEMS TO BE LEAKING NODES ON STRESS TEST!!! (for large numbers of inserts)
 */
 
 
@@ -34,7 +34,7 @@ function Quadtree(args) {
   // required: x, y, w, h
   // optional: max_objects, max_level
   this.max_objects = args.max_objects || 5; //100;
-  this.max_level   = args.max_level   || 10;
+  this.max_level   = args.max_level   || 2; //10
 
   // id-to-object mapping - is this even necessary?
   this.obj_ids     = {};
@@ -63,11 +63,15 @@ Quadtree.prototype.insert = function(obj) {
 };
 
 // return a list of objects located in the given region
-Quadtree.prototype.query = function(region) {
+Quadtree.prototype.query = function(region, filter) {
   // if no region provided, query entire quadtree
+  filter = typeof filter !== 'undefined' ? filter : true;
   region = region || {x:this.root.x, y:this.root.y,
 		      w:this.root.w, h:this.root.h};
-  return this.root.query(region);
+  
+  // for mouse clicks...need to scale!
+  //region.w = region.w || 1; region.h = region.h || 1;
+  return this.root.query(region, filter);
 }
 
 // remove all references to the object with the given id
@@ -124,28 +128,28 @@ function QNode(args) {
 // attempt to insert object with given id into quadtree
 QNode.prototype.insert = function(id) {
   var obj = this.quadtree.obj_ids[id];
-
+  
   // check if need to 'expand' to accomodate external region
   if (this.level === 0 && !this.contains(obj)) {
     this.expand(id);
   }
   
   // verify the passed object should actually be added
-  else if (this.overlaps(obj)) {
+  //else if (this.overlaps(obj)) {
+  else if (this.contains(obj)) {
     // if have children, pass on to them
     if (this.children.length !== 0) {
-      //for(var i=0; i < 4; i++) this.children[i].insert(id);
-      this.children.map( function(c) { c.insert(id) } );
+      this.children.map( function(c) { c.insert(id); } );
     } else {
       // no children, add to self
       this.add_ids([id]);
       // need to refine if have too many objects at this level
       if (Object.keys(this.ids).length > this.quadtree.max_objects &&
-	  this.level <= this.quadtree.max_level) {
+	  this.level < this.quadtree.max_level) {
 	this.refine();
       }
     }
-  } 
+  }
 };
 
 QNode.prototype.refine = function() {
@@ -159,15 +163,13 @@ QNode.prototype.refine = function() {
 				parent:this, quadtree:this.quadtree});
   this.children[3] = new QNode({x:x+hw, y:y+hh, w:hw, h:hh, level:newlevel, //LR
 				parent:this, quadtree:this.quadtree});
-  // don't proceed if have no ids
-  if (Object.keys(this.ids).length === 0) return;
-  
   // populate children with own ids
   this.children.map(
-    function(c) { Object.keys(this.ids).map( function(id) { c.insert(id); } ) },
+    function(c) {
+      Object.keys(this.ids).map( function(id) { c.insert(id); } ) },
     this
   );
-  
+
   // clear own ids
   this.clear_ids();
 };
@@ -238,7 +240,8 @@ QNode.prototype.expand = function(id) {
 };
 
 // return a list of objects located in the given region
-QNode.prototype.query = function(region) {
+QNode.prototype.query = function(region, filter) {
+  filter = typeof filter !== 'undefined' ? filter : true;
   // don't return anything if outside query region
   if (!this.overlaps(region)) {
     return {};
@@ -246,13 +249,19 @@ QNode.prototype.query = function(region) {
 
   // if inside query region and have no children, return objects
   if (this.children.length === 0) {
+    if (!filter) return this.ids;
     return filter_region(this.ids, region, this.quadtree.obj_ids);
   }
 
-  // otherwise delegate to children
-  return $.extend.apply({}, this.children.map(
-    function(c) { return c.query(region); }
+  // TODO: CLEAN THIS UP
+  var child_ids = [].concat.apply([], this.children.map(
+    function(c) { return Object.keys(c.query(region, filter)); }
   ));
+
+  // must...not...use...for loops...
+  return child_ids.reduce(function(obj, k) {
+    obj[k] = true; return obj;
+  }, {});
 };
 
 // see if passed region overlaps this node
@@ -260,7 +269,7 @@ QNode.prototype.overlaps = function(region) {
   return overlaps(this, region);
 };
 
-// see if passed region overlaps this node
+// see if passed region contains this node
 QNode.prototype.contains = function(region) {
   return contains(this, region);
 };
@@ -273,16 +282,14 @@ QNode.prototype.inc_level = function() {
 
 // add a list of ids
 QNode.prototype.add_ids = function(ids) {
-  ids.map( function(id) { this.ids[id] = true;
-			  this.quadtree.obj_to_node[id][this.id] = true; },
-	   this );
+  ids.map(
+    function(id) { this.ids[id] = true;
+		   this.quadtree.obj_to_node[id][this.id] = true; },
+    this );
 };
 
 // clear the ids from this node, updating the relevant datastructures
 QNode.prototype.clear_ids = function() {
-  // don't proceed if have no ids
-  if (Object.keys(this.ids).length === 0) return;
-  
   // remove references to this node from obj_to_node
   Object.keys(this.ids).map(
     function(id) { delete this.quadtree.obj_to_node[id][this.id]; }, this
@@ -327,7 +334,7 @@ function overlaps(r1, r2) {
   var r1c = {x: r1.x+r1.w/2, y: r1.y+r1.h/2};
   var r2c = {x: r2.x+r2.w/2, y: r2.y+r2.h/2};
   
-  // see if distance between centers is <= corresponding dimensions
+  // see if distance between centers is less than corresponding dimensions
   var dx = Math.abs(r1c.x - r2c.x);
   var dy = Math.abs(r1c.y - r2c.y);
   var x_sum = r1.w/2 + r2.w/2;
