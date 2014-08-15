@@ -9,6 +9,7 @@
 - add nice way to visualize quadtree to help verify working? ideally can
   click to add points...
   maybe just implement this as you're implementing canvas stuff
+- consider adding coarsen-topdown back in
 - wait, aren't you supposed to have a hash of tags at each leaf?
   I guess reasonable to not include that here, but wrap quadtree to it can
   do that stuff - so maybe this code will actually be useful to someone else.
@@ -22,6 +23,9 @@
   could make only slightly compressed by only refining quadrant that needs it
 - DO THIS should allow functions to take lists of things and/or multiple args
 - remember to update datastructures...
+- search for and complete TODOs
+- clean up node addition/deletion in general - lots of repetition right now
+- split quadtree / tests/ demo out into own repo
 */
 
 
@@ -53,7 +57,7 @@ function Quadtree(args) {
   this.max_objects = args.max_objects || 5; //100;
   this.max_level   = args.max_level   || 10;
 
-  // id-to-object mapping - is this even necessary?
+  // id-to-object mapping - necessary?
   this.obj_ids     = {};
   // id-to-node mapping (using node ids) - necessary?
   this.node_ids    = {};
@@ -73,8 +77,6 @@ Quadtree.prototype.insert = function(obj) {
   }
   // first need to add to id-to-object map
   this.obj_ids[obj.id]     = obj;
-  // make sure obj_to_node has been initialized
-  this.obj_to_node[obj.id] = this.obj_to_node[obj.id] || {};
   // then insert into the root - will automatically update obj_to_node
   this.root.insert(obj.id);
 };
@@ -86,29 +88,27 @@ Quadtree.prototype.query = function(region, filter) {
   region = region || {x:this.root.x, y:this.root.y,
 		      w:this.root.w, h:this.root.h};
   
-  // for mouse clicks...need to scale!
+  // for mouse clicks...need to scale! 1x1 will be huge zoomed in
   //region.w = region.w || 1; region.h = region.h || 1;
   return this.root.query(region, filter);
 }
 
 // remove all references to the object with the given id
 Quadtree.prototype.remove_by_id = function(id) {
-  // grab affected nodes
-  var node_ids = Object.keys(this.obj_to_node[id]);
+  // grab affected node
+  var node_id = this.obj_to_node[id];
+  var node    = this.node_ids[node_id];
 
-  // tell them all to remove the object and try to coarsen
-  node_ids.map( function(n_id) {
-    var n = this.node_ids[n_id];
-    delete n.ids[id];
-    if (n.parent !== null) n.parent.coarsen();
-  }, this );
+  // tell it to remove the object and try to coarsen
+  // TODO: add object removal to node...
+  delete node.ids[id];
+  if (node.parent !== null) node.parent.coarsen();
   
   // then remove the object from obj_ids
   delete this.obj_ids[id];
 };
 
 // remove all elements in a given region
-// TODO: consider using coarsen_topdown
 Quadtree.prototype.remove_by_region = function(region) {
   // query root to figure out what ids are in the passed region
   var ids = Object.keys(this.query(region));
@@ -143,7 +143,6 @@ function QNode(args) {
   this.ids = {};
   this.ids.refineable = {};   // ids that could be sent to a child
   this.ids.unrefineable = {}; // ids that must stay at this level
-  this.quadtree.obj_to_node[this.id] = {};
 };  
 
 // attempt to insert object with given id into quadtree
@@ -297,12 +296,12 @@ QNode.prototype.get_ids = function() {
 // TODO: collapse these into one!
 QNode.prototype.add_refineable = function(ids) {
   ids.map( function(id) { this.ids.refineable[id] = true;
-			  this.quadtree.obj_to_node[id][this.id] = true; },
+			  this.quadtree.obj_to_node[id] = this.id; },
 	   this );
 };
 QNode.prototype.add_unrefineable = function(ids) {
   ids.map( function(id) { this.ids.unrefineable[id] = true;
-			  this.quadtree.obj_to_node[id][this.id] = true; },
+			  this.quadtree.obj_to_node[id] = this.id; },
 	   this );
 };
 
@@ -311,7 +310,7 @@ QNode.prototype.add_unrefineable = function(ids) {
 QNode.prototype.clear_refineable = function() {
   // remove references to this node from obj_to_node
   Object.keys(this.ids.refineable).map(
-    function(id) { delete this.quadtree.obj_to_node[id][this.id]; }, this
+    function(id) { delete this.quadtree.obj_to_node[id]; }, this
   );
   
   // clear ids
@@ -321,7 +320,7 @@ QNode.prototype.clear_refineable = function() {
 QNode.prototype.clear_unrefineable = function() {
   // remove references to this node from obj_to_node
   Object.keys(this.ids.unrefineable).map(
-    function(id) { delete this.quadtree.obj_to_node[id][this.id]; }, this
+    function(id) { delete this.quadtree.obj_to_node[id]; }, this
   );
   
   // clear ids
