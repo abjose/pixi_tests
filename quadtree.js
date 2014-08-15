@@ -180,9 +180,6 @@ QNode.prototype.insert = function(id) {
     if (Object.keys(this.ids.refineable).length > this.quadtree.max_objects)
       this.refine();
   }
-
-  //console.log('refineable:',  Object.keys(this.ids.refineable).length,
-  //            'unrefineable', Object.keys(this.ids.unrefineable).length);
 };
 
 QNode.prototype.refine = function() {
@@ -261,7 +258,7 @@ QNode.prototype.query = function(region, filter, children_only) {
   // set defaults
   region = region || {x:this.x, y:this.y, w:this.w, h:this.h};
   filter = typeof filter !== 'undefined' ? filter : true;
-  children_only = typeof filter !== 'undefined' ? filter : false;
+  children_only = typeof children_only !== 'undefined' ? filter : false;
   
   // don't return anything if outside query region
   if (!this.overlaps(region)) return {};
@@ -271,15 +268,12 @@ QNode.prototype.query = function(region, filter, children_only) {
     function(c) { return Object.keys(c.query(region, filter)); }
   ));
 
-  //console.log(ids);
-  
   // tack on own objects (if not children_only)
-  if (!children_only) ids = ids.concat(Object.keys(this.get_ids()));
+  if (!children_only) ids = [].concat(ids, Object.keys(this.get_ids()));
   
   // convert to an object before returning
   ids = ids.reduce(function(obj, k) { obj[k] = true; return obj; }, {});
   // filter or not
-  //console.log(ids);
   if (!filter) return ids;
   return filter_region(ids, region, this.quadtree.obj_ids);
 };
@@ -315,7 +309,6 @@ QNode.prototype.remove_id = function(id) {
 };
 
 QNode.prototype.get_ids = function() {
-  //console.log($.extend({}, this.ids.refineable, this.ids.unrefineable));
   return $.extend({}, this.ids.refineable, this.ids.unrefineable);
 };
 
