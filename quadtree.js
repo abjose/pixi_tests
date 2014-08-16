@@ -21,6 +21,9 @@
 - sure obj_to_node being used correctly?
 - filter_region still very slow
 - need to worry about overlaps testing and non-integer region coords?
+- weakness of store-in-leaves - stuff on boundaries gets 'picked up' in queries
+  any way to ignore? I guess won't be a big problem because you filter them
+  out...
 */
 
 function Quadtree(args) {
@@ -233,14 +236,13 @@ QNode.prototype.query = function(region, filter, children_only) {
     function(c) { return c.query(region, filter); }
   ));
 
-  // add on own objects (if not children_only)
-  if (!children_only) {
-    if (!filter) ids = ids.concat(this.get_ids());
-    else ids = ids.concat(filter_region(this.get_ids(), region,
-					this.quadtree.obj_ids));
-  }
-
-  return ids;
+  // don't add on own ids if children_only
+  if (children_only) return ids;
+  
+  // otherwise add on own objects
+  if (!filter) return ids.concat(this.get_ids());
+  return ids.concat(filter_region(this.get_ids(), region,
+				  this.quadtree.obj_ids));
 };
 
 // see if passed region overlaps this node
