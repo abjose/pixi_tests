@@ -17,6 +17,7 @@
   canvas tag as fallback?
 - seems like transform css doesn't work in chrome - need to use the chrome-
   specific ones?
+- make only redraw stuff when necessary
 - could use cacheAsBitmap when moving around 'background' (including windows?)
 - why does html_sprite always seem to have padding on top?
 - rasterizeHTML's ZOOM option seems like it might be useful!
@@ -27,7 +28,8 @@
   This way easy to scroll through / follow links without reverting to plain-text
 - can just use iframe instead of div? or...could use iframe for displaying
   other websites?
-- anyway to do...multithreading or...something?
+- allow key event detection in multiple directions at once
+- add stuff to allow deletion deletion!!!!
 */
 
 /*
@@ -37,7 +39,12 @@ kinda nice to change animations to only redraw affected squares
 STEPS 4 SCALING
 - detect scroll events
 
-http://www.reddit.com/r/books/comments/2dodb0/a_couple_months_ago_someone_here_asked_for_the/
+OBJECTIFY
+- make basic object - 'Rectangle'??
+  should keep track of its location and bounds
+  how to help deal with scaling?
+  also field to allow not rendering if too small
+  break out objects into another file!?
 */
 
 
