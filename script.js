@@ -1,7 +1,6 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- do functions need semicolons after? lolz
 - MAKE THINGS CLASSY
 - and drag to translate :D!
 - samer wants physics
@@ -29,12 +28,19 @@
 - can just use iframe instead of div? or...could use iframe for displaying
   other websites?
 - allow key event detection in multiple directions at once
-- add stuff to allow deletion deletion!!!!
+- add stuff to allow deletion!!!!
+- should definitely have a way of rendering everything to a big thing
+  and moving that around instead of moving everything around separately...
+- how to avoid having to use canvas to render HTML stuff? Sure you want to do
+  rendering stuff at all? why not just use DOM stuff everywhere, plus an 
+  underlying canvas layer for...drawing?
+- do you even need to use pixi.js?
+- kinda interesting to render all stuff onto a spritesheet...
+- can remove matrix library
+- consider using multiple stacked canvases 
 */
 
 /*
-make sure to pull out quadtree demo!!
-kinda nice to change animations to only redraw affected squares
 
 STEPS 4 SCALING
 - detect scroll events
@@ -45,6 +51,7 @@ OBJECTIFY
   how to help deal with scaling?
   also field to allow not rendering if too small
   break out objects into another file!?
+
 */
 
 
@@ -197,7 +204,7 @@ function draw_qt() {
   qt_rect.clear();
   qt_rect.x = viewrect.x; qt_rect.y = viewrect.y;
   qt.root.draw(qt_rect);
-};
+}
 
 // insert a random-sized rectangle wherever we clicked
 function insert_rectangle(mouseData) {
@@ -215,7 +222,7 @@ function insert_rectangle(mouseData) {
 
   // insert into quadtree!
   qt.insert(qt_obj);
-};
+}
 
 // when mouse over part of quadtree, highlight those things
 function highlight_rects() {
@@ -223,10 +230,10 @@ function highlight_rects() {
   //       or just copy into a demo to keep for later...
   // should recolor all default color, then color highlighted ones different?
   // instead of redrawing everything all the time
-  var all = qt.query(null, false);
+  var all = qt.query(null, null);
   var mouse = stage.getMousePosition();
   var ids = qt.query({x:mouse.x-viewrect.x, y:mouse.y-viewrect.y,
-		      w:1, h:1}, false);
+		      w:1, h:1}, null, true);
   
   for (var i=0; i < all.length; i++) {
     var obj = qt.obj_ids[all[i]];
@@ -241,7 +248,7 @@ function highlight_rects() {
     //obj.rect.drawRect(obj.x, obj.y, obj.w, obj.h);
     obj.rect.drawRect(obj.x+viewrect.x, obj.y+viewrect.y, obj.w, obj.h);
   }
-};
+}
 
 function insert_textbox(mouseData) {
   // position appropriately
@@ -255,14 +262,14 @@ function insert_textbox(mouseData) {
   rect_clicked = true;
   // remove pixi text
   html_sprite.setTexture(PIXI.Texture.fromCanvas(empty_canvas)); 
-};
+}
 
 function restore_pixi_text(mouseData) {
   // replace pixi text
   render_textbox($(textbox).val(), rect_w, rect_h);
   // hide div
   $(textbox).css('visibility', 'hidden');
-};
+}
 
 function render_textbox(text, width, height) {
   // dangerous??? couldn't someone just pass in arbitrary HTML?
@@ -292,4 +299,4 @@ function render_textbox(text, width, height) {
       console.log('rendering error!');
       console.log(e);
     });
-};
+}
