@@ -34,7 +34,7 @@ Rect.prototype.render = function(view_rect, render_rect) {
   var t = transform_rect(this, view_rect, render_rect);
 
   // then draw it
-  this.rect.clear();
+  //this.rect.clear();
   this.rect.beginFill(this.color);
   this.rect.drawRect(t.x, t.y, t.w, t.h);
 };
@@ -56,29 +56,41 @@ function ViewRect(args) {
 
   // previously-seen stuff
   this.prev_ids = [];
+
+  // be same color as background
+  this.color = 0x66FF99;
 }
 ViewRect.prototype = Object.create(Rect.prototype);
 ViewRect.prototype.constructor = ViewRect;
 
 // render onto rectangle rect of  context ctx unless w or h are <= thresh
 ViewRect.prototype.render = function(view_rect, render_rect) { // thresh
+  // figure out equivalent rect in render_rect frame
+  var t = transform_rect(this, view_rect, render_rect);
+  
+  // draw self
+  this.rect.clear();
+  this.rect.lineStyle(1, 0x000000);
+  this.rect.beginFill(this.color);
+  this.rect.drawRect(t.x, t.y, t.w, t.h);
+
   // query the surface for stuff to draw - nothing fancy for now
   var ids = this.quadtree.query(view_rect), i = 0;
-
+  
   // tell everything you previously saw to clear itself
   for (i=0; i < this.prev_ids.length; i++)
     this.quadtree.obj_ids[this.prev_ids[i]].clear();
-  // then update prev_ids
   this.prev_ids = ids;
   
   // tell everything to render itself
   for (var i=0; i < ids.length; i++)
-    this.quadtree.obj_ids[ids[i]].render(view_rect, render_rect);
+    if (ids[i] !== this.id)
+      this.quadtree.obj_ids[ids[i]].render(view_rect, render_rect);
   // sure you don't want to pass different rects?
   // hmm, should be..same?
 
-  // use rect to draw self
-
+  
+  
   // should have extra 'is_main_view' thing? that would keep from
   // querying stuff underneath and skip drawing self and...other stuff
   // can tell using rects?
