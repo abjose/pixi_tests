@@ -24,39 +24,41 @@ function Rect(args) {
   this.surfaces = {};
 
   // graphics...
-  this.rect = new PIXI.Graphics();
+  this.color = 0x0077AA;
+  this.rect  = new PIXI.Graphics();
   args.ctx.addChild(this.rect);
 }
 
 Rect.prototype.render = function(view_rect, render_rect) {
-  // ctx is the context to draw to -- actually stage?
   // view_rect is the region on the surface being rendered
   // render_rect is the region on the context to render to
   
   // figure out equivalent rect in render_rect frame
-  var new_x = ((this.x - view_rect.x) / view_rect.w) * render_rect.w;
-  var new_y = ((this.y - view_rect.y) / view_rect.h) * render_rect.h;
-  var new_w = this.w * (render_rect.w / view_rect.w);
-  var new_h = this.h * (render_rect.h / view_rect.h);
+  var t = transform_rect(this, view_rect, render_rect);
 
-  //console.log(new_x, new_y, new_w, new_h);
-
-  // then...draw it?
+  // then draw it
   this.rect.clear();
-  this.rect.beginFill(0x0077AA);
-  this.rect.drawRect(new_x, new_y, new_w, new_h);
+  this.rect.beginFill(this.color);
+  this.rect.drawRect(t.x, t.y, t.w, t.h);
 };
 
+Rect.prototype.clear = function() {
+  this.rect.clear();
+}
+
 function ViewRect(args) {
-  //var vr = Object.create( new Rect(args) );
   Rect.call(this, args);
 
-  // have 'frame' bounds, now need 'view' bounds (what the view rect views)
-  this.vx = args.vx; this.vy = args.vy;
-  this.vw = args.vw; this.vh = args.vh;
+  // have 'ouput' bounds (where ViewRect appears on surface),
+  // now need 'input' bounds (what the ViewRect views on the surface)
+  this.ix = args.ix; this.iy = args.iy;
+  this.iw = args.iw; this.ih = args.ih;
 
   // quadtree to query
   this.quadtree = args.quadtree;
+
+  // previously-seen stuff
+  this.prev_ids = [];
 }
 ViewRect.prototype = Object.create(Rect.prototype);
 ViewRect.prototype.constructor = ViewRect;
