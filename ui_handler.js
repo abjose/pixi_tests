@@ -40,4 +40,4 @@ window.addEventListener('mousedown',
 			function(event) { UIHandler.onMouseUp(event); }, false);
 
 // detect mouse scrolls
-window.addEventListener('mousewheel', function() {console.log('scroll!')});
+//window.addEventListener('mousewheel', function() {console.log('scroll!')});
