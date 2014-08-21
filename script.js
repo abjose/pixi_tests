@@ -38,6 +38,7 @@
 - consider using multiple stacked canvases 
 - put global functions (that aren't 'classes') into a utilities file?
   and put them in a 'tools' namespace or something
+- allow zoomin in to where mouse is?
 */
 
 /*
@@ -158,11 +159,6 @@ window.addEventListener('keydown', function(event) {
 // MAKE TRANSLATION DEPEND ON SCALE??
 // just translate by some proportion of the view's size
 
-// SOMETHING WEIRD HAPPENING WITH SCALE
-// sometimes zooms on a different location?
-// might be bug with scale_view setting x and y
-
-// zooming isn't quite right
 var scale = 1.25;
 var zoomr = null;
 window.addEventListener('mousewheel', function(event) {
@@ -186,7 +182,7 @@ window.addEventListener('mousewheel', function(event) {
 function scale_view(view, scale) {
   var new_w = view.w * scale;  var new_h = view.h * scale;
   var new_x = view.x - (new_w-view.w)/2;
-  var new_y = view.x - (new_h-view.h)/2;
+  var new_y = view.y - (new_h-view.h)/2;
   return {x: new_x, y: new_y, w: new_w, h: new_h};
 };
 
