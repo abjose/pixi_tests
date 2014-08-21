@@ -1,14 +1,12 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- and drag to translate! and inertial dragging?
+- add drag to translate! and inertial dragging?
 - allow adding new rects!
-- and scaling!
 - and...drawing?!
 - probably doesn't make sense to use overflow: hidden for everything - 
   maybe once larger than a certain size should break? Or...never break?
 - switch movement to using translate instead of absolute positioning?
-- get everything to scale :O :OOOOOOO (randomly? on scroll?)
 - get cursor to be in proper place when clicking to edit
 - figure out how to add hidden(?) text so can be indexed - add inside
   canvas tag as fallback?
@@ -34,7 +32,6 @@
   underlying canvas layer for...drawing?
 - do you even need to use pixi.js?
 - kinda interesting to render all stuff onto a spritesheet...
-- can remove matrix library
 - consider using multiple stacked canvases 
 - put global functions (that aren't 'classes') into a utilities file?
   and put them in a 'tools' namespace or something
@@ -175,7 +172,7 @@ window.addEventListener('mousewheel', function(event) {
   }
   view_rect.x = zoomr.x; view_rect.y = zoomr.y;
   view_rect.w = zoomr.w; view_rect.h = zoomr.h;
-  console.log(view_rect);
+  //console.log(view_rect);
 }, false);
 
 // remove this or put somewhere else
