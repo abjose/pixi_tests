@@ -132,12 +132,66 @@ stage.addChild(html_sprite);
 restore_pixi_text();
 
 var vr = new ViewRect({x:  0, y:  0, w:  WIDTH, h:  HEIGHT,
-		       vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
+		       ix: 0, iy: 0, iw: WIDTH, ih: HEIGHT,
 		       quadtree:qt, ctx: stage});
 
 // uhh, combine with above?
+// change so can have a 'main view' and use that view's stuff for these
 var view_rect   = {x:0, y:0, w:WIDTH, h:HEIGHT};
 var render_rect = {x:0, y:0, w:WIDTH, h:HEIGHT};
+
+window.addEventListener('mousemove', function(event) {
+  //requestAnimFrame(animate);
+}, false);
+
+window.addEventListener('keydown', function(event) {
+  event.preventDefault();
+  requestAnimFrame(animate);
+  switch (event.keyCode) {
+  case 37: view_rect.x -= 5; break; // left
+  case 38: view_rect.y -= 5; break; // up
+  case 39: view_rect.x += 5; break; // right
+  case 40: view_rect.y += 5; break; // down
+  }
+}, false);
+
+// MAKE TRANSLATION DEPEND ON SCALE??
+// just translate by some proportion of the view's size
+
+// SOMETHING WEIRD HAPPENING WITH SCALE
+// sometimes zooms on a different location?
+// might be bug with scale_view setting x and y
+
+// zooming isn't quite right
+var scale = 1.25;
+var zoomr = null;
+window.addEventListener('mousewheel', function(event) {
+  event.preventDefault();
+  requestAnimFrame(animate);
+  // uhh
+  switch (event.wheelDelta > 0) {
+  case false: // shrink (zoom in)
+    zoomr = scale_view(view_rect, scale);
+    break; 
+  case true:  // grow (zoom out)
+    zoomr = scale_view(view_rect, 1/scale);
+    break; 
+  }
+  view_rect.x = zoomr.x; view_rect.y = zoomr.y;
+  view_rect.w = zoomr.w; view_rect.h = zoomr.h;
+  console.log(view_rect);
+}, false);
+
+// remove this or put somewhere else
+function scale_view(view, scale) {
+  var new_w = view.w * scale;  var new_h = view.h * scale;
+  var new_x = view.x - (new_w-view.w)/2;
+  var new_y = view.x - (new_h-view.h)/2;
+  return {x: new_x, y: new_y, w: new_w, h: new_h};
+};
+
+// need to have quadtree affected by view...
+// does that mean...putting qt inside qt??
 
 
 requestAnimFrame(animate);
@@ -152,7 +206,7 @@ function animate() {
   }
 
   // draw the quadtree
-  draw_qt();
+  //draw_qt();
   //highlight_rects();
   
   vr.render(view_rect, render_rect);
