@@ -239,22 +239,22 @@ function draw_qt() {
   // just need to draw a rectangle for every child, top-down
   // hmm, easier to just add a small drawing function to QNode? ehhh.
   qt_rect.clear();
-  qt_rect.x = viewrect.x; qt_rect.y = viewrect.y;
+  qt_rect.x = -view_rect.x; qt_rect.y = -view_rect.y;
   qt.root.draw(qt_rect);
 }
 
 // insert a random-sized rectangle wherever we clicked
 function insert_rectangle(mouseData) {
   requestAnimFrame(animate);
-  
   var max_w = 5, max_h = 5;
-  var rect = new Rect({x: mouseData.global.x, y: mouseData.global.y,
-		       //w:Math.random()*max_w, h:Math.random()*max_h,
-		       w: max_w, h: max_h,
-		       ctx: stage});
-  //console.log(rect.x, rect.y);
+  var r = canvas_to_surface({x:mouseData.global.x, y:mouseData.global.y,
+			     //w:Math.random()*max_w, h:Math.random()*max_h,
+			     w:max_w, h:max_h}, render_rect, view_rect);
+  r.w = max_w; r.h = max_h;
+  r.ctx = stage;
+  var rect = new Rect(r);
 
-  // insert into quadtree!
+  // insert into quadtree
   qt.insert(rect);
 }
 
@@ -264,21 +264,19 @@ function highlight_rects() {
   // instead of redrawing everything all the time
   var all = qt.query(null, null);
   var mouse = stage.getMousePosition();
-  var ids = qt.query({x:mouse.x-viewrect.x, y:mouse.y-viewrect.y,
-		      w:1, h:1}, null, true);
-  
+  var r = canvas_to_surface({x:mouse.x, y:mouse.y, w:1, h:1},
+			    render_rect, view_rect);
+  var ids = qt.query(r, null, true);
+
+  // COULD ADD A 'DIRTY' PARAMETER TO OBJECTS FOR RERENDERING?
+  // just go through and change their color property
   for (var i=0; i < all.length; i++) {
     var obj = qt.obj_ids[all[i]];
-    obj.rect.clear();
-    obj.rect.beginFill(0x0077AA);
-    obj.rect.drawRect(obj.x+viewrect.x, obj.y+viewrect.y, obj.w, obj.h);
+    obj.color = 0x0077AA;
   }
   for (var i=0; i < ids.length; i++) {
     var obj = qt.obj_ids[ids[i]];
-    obj.rect.clear();
-    obj.rect.beginFill(0xFF0000);
-    //obj.rect.drawRect(obj.x, obj.y, obj.w, obj.h);
-    obj.rect.drawRect(obj.x+viewrect.x, obj.y+viewrect.y, obj.w, obj.h);
+    obj.color = 0xFF0000;
   }
 }
 
