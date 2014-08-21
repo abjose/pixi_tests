@@ -1,9 +1,7 @@
 // pixi.js test - copied from example 1 (rotating bunny)
 
 /* TODO
-- MAKE THINGS CLASSY
-- and drag to translate :D!
-- samer wants physics
+- and drag to translate! and inertial dragging?
 - allow adding new rects!
 - and scaling!
 - and...drawing?!
@@ -41,22 +39,12 @@
 */
 
 /*
-
-STEPS 4 SCALING
-- detect scroll events
-
-OBJECTIFY
-- make basic object - 'Rectangle'??
-  should keep track of its location and bounds
-  how to help deal with scaling?
-  also field to allow not rendering if too small
-  break out objects into another file!?
-
+- CONVERT THIS TO USE OBJECTS from elements.js
 */
 
 
 var WIDTH  = window.innerWidth,
-HEIGHT = window.innerHeight;
+    HEIGHT = window.innerHeight;
 var WEIRD_PADDING = 10;
 
 // create a new instance of a pixi stage
@@ -72,9 +60,6 @@ var renderer = new PIXI.CanvasRenderer(WIDTH, HEIGHT);
 
 // add the renderer view element to the DOM
 document.body.appendChild(renderer.view);
-
-requestAnimFrame(animate);
-
 
 // quadtree stuff
 var qt = new Quadtree({x:150, y:320, w:100, h:100});
@@ -159,9 +144,18 @@ stage.addChild(html_sprite);
 // start with rendered text on div - think only works with canvas
 restore_pixi_text();
 
+var vr = new ViewRect({x:  0, y:  0, w:  WIDTH, h:  HEIGHT,
+		       vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
+		       quadtree:qt, ctx: stage});
 
+// uhh, combine with above?
+var view_rect   = {x:0, y:0, w:WIDTH, h:HEIGHT};
+var render_rect = {x:0, y:0, w:WIDTH, h:HEIGHT};
+
+
+requestAnimFrame(animate);
 function animate() {
-  requestAnimFrame(animate);
+  //requestAnimFrame(animate);
   
   // bounce canvas rectangle
   //bounce(); // will have to change this to bounce multiple rects..
@@ -172,7 +166,9 @@ function animate() {
 
   // draw the quadtree
   draw_qt();
-  highlight_rects();
+  //highlight_rects();
+  
+  vr.render(view_rect, render_rect);
 
   /*
   // update graphics
@@ -208,26 +204,21 @@ function draw_qt() {
 
 // insert a random-sized rectangle wherever we clicked
 function insert_rectangle(mouseData) {
+  requestAnimFrame(animate);
+  
   var max_w = 5, max_h = 5;
-  var rect   = new PIXI.Graphics();
-  var qt_obj = {x:mouseData.global.x-viewrect.x,
-		y:mouseData.global.y-viewrect.y,
-		w:max_w, h:max_h,
-		//w:Math.random()*max_w, h:Math.random()*max_h,
-		id:UUID(), rect:rect};
-  // fill in
-  rect.beginFill(0x0077AA);
-  rect.drawRect(qt_obj.x+viewrect.x, qt_obj.y+viewrect.y, qt_obj.w, qt_obj.h);
-  stage.addChild(rect);
+  var rect = new Rect({x: mouseData.global.x, y: mouseData.global.y,
+		       //w:Math.random()*max_w, h:Math.random()*max_h,
+		       w: max_w, h: max_h,
+		       ctx: stage});
+  //console.log(rect.x, rect.y);
 
   // insert into quadtree!
-  qt.insert(qt_obj);
+  qt.insert(rect);
 }
 
 // when mouse over part of quadtree, highlight those things
 function highlight_rects() {
-  // TODO: Move this stuff out of here to a demo file for quadtree?
-  //       or just copy into a demo to keep for later...
   // should recolor all default color, then color highlighted ones different?
   // instead of redrawing everything all the time
   var all = qt.query(null, null);
