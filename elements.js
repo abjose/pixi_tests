@@ -9,9 +9,6 @@
 - inheritance / traversing prototype chain is slow?
 - consider adding some minimal-size thresh to view_rect so doesn't keep
   drawing smaller and smaller view_rects
-- write function to convert from click (render_rect) to view_rect
-  could take out the stuff in Rect.render right now and put in own functions
-  so have go one way and then the other
 */
 
 function Rect(args) {
@@ -66,10 +63,47 @@ ViewRect.prototype.constructor = ViewRect;
 // render onto rectangle rect of  context ctx unless w or h are <= thresh
 ViewRect.prototype.render = function(view_rect, render_rect) { // thresh
   // query the surface for stuff to draw - nothing fancy for now
-  var ids = this.quadtree.query(view_rect);
+  var ids = this.quadtree.query(view_rect), i = 0;
+
+  // tell everything you previously saw to clear itself
+  for (i=0; i < this.prev_ids.length; i++)
+    this.quadtree.obj_ids[this.prev_ids[i]].clear();
+  // then update prev_ids
+  this.prev_ids = ids;
   
   // tell everything to render itself
-  for (var i=0; i < ids.length; i++) {
+  for (var i=0; i < ids.length; i++)
     this.quadtree.obj_ids[ids[i]].render(view_rect, render_rect);
-  }
+  // sure you don't want to pass different rects?
+  // hmm, should be..same?
+
+  // use rect to draw self
+
+  // should have extra 'is_main_view' thing? that would keep from
+  // querying stuff underneath and skip drawing self and...other stuff
+  // can tell using rects?
+
+  // so ViewRect has rect and input_rect
+  // then gets view_rect and render_rect
+  // what does each mean?
+  // rect is location of viewrect 'output' on *surface*
+  // input_rect is location of viewrect 'input' on *surface*
+  // view_rect is location of current view
+  // render_rect is area to render to on canvas
 };
+
+// 'transform' passed rect from a to b
+function transform_rect(rect, a, b) {
+  return {x: ((rect.x - a.x) / a.w) * b.w,
+	  y: ((rect.y - a.y) / a.h) * b.h,
+	  w: rect.w * (b.w / a.w),
+	  h: rect.h * (b.h / a.h) };
+}
+
+// convert canvas coords to surface coords
+// consider making this an option for transform_rect or something
+function canvas_to_surface(rect, render_rect, view_rect) {
+  var r = transform_rect(rect, render_rect, view_rect);
+  r.x += view_rect.x; r.y += view_rect.y;
+  return r;
+}
