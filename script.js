@@ -36,6 +36,8 @@
 - kinda interesting to render all stuff onto a spritesheet...
 - can remove matrix library
 - consider using multiple stacked canvases 
+- put global functions (that aren't 'classes') into a utilities file?
+  and put them in a 'tools' namespace or something
 */
 
 /*
@@ -43,8 +45,10 @@
 */
 
 
-var WIDTH  = window.innerWidth,
-    HEIGHT = window.innerHeight;
+//var WIDTH  = window.innerWidth,
+//    HEIGHT = window.innerHeight;
+var WIDTH  = 500;
+    HEIGHT = 500;
 var WEIRD_PADDING = 10;
 
 // create a new instance of a pixi stage
@@ -66,23 +70,6 @@ var qt = new Quadtree({x:150, y:320, w:100, h:100});
 var qt_rect = new PIXI.Graphics();
 stage.addChild(qt_rect);
 
-// view stuff
-var viewrect = {};
-viewrect.x = 0;
-viewrect.y = 0;
-viewrect.w = WIDTH;
-viewrect.h = HEIGHT;
-
-window.addEventListener('keydown', function(event) {
-  event.preventDefault();
-  switch (event.keyCode) {
-  case 37: viewrect.x -= 5; break; // left
-  case 38: viewrect.y -= 5; break; // up
-  case 39: viewrect.x += 5; break; // right
-  case 40: viewrect.y += 5; break; // down
-  }
-  
-}, false);
 
 // get the box to move around
 var textbox = document.getElementById("textbox");
