@@ -36,12 +36,8 @@
 - put global functions (that aren't 'classes') into a utilities file?
   and put them in a 'tools' namespace or something
 - allow zoomin in to where mouse is?
+- make sure things are converted to integer coordinates? looks ugly otherwise
 */
-
-/*
-- CONVERT THIS TO USE OBJECTS from elements.js
-*/
-
 
 //var WIDTH  = window.innerWidth,
 //    HEIGHT = window.innerHeight;
@@ -51,7 +47,8 @@ var WEIRD_PADDING = 10;
 
 // create a new instance of a pixi stage
 var interactive = true;
-var stage = new PIXI.Stage(0x66FF99, interactive);
+//var stage = new PIXI.Stage(0x66FF99, interactive);
+var stage = new PIXI.Stage(0xFFFFFF, interactive);
 // add temporary click callback
 stage.click = insert_rectangle;
 
@@ -129,50 +126,61 @@ stage.addChild(html_sprite);
 // start with rendered text on div - think only works with canvas
 restore_pixi_text();
 
-var vr = new ViewRect({x:  0, y:  0, w:  WIDTH, h:  HEIGHT,
-		       ix: 0, iy: 0, iw: WIDTH, ih: HEIGHT,
-		       quadtree:qt, ctx: stage});
+var vr = new ViewRect({//x:  0, y:  0, w:  0, h:  0,
+		       x:  0, y:  0, w:  WIDTH, h:  HEIGHT,
+		       vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
+		       quadtree: qt, ctx: stage});
 
-// uhh, combine with above?
-// change so can have a 'main view' and use that view's stuff for these
-var view_rect   = {x:0, y:0, w:WIDTH, h:HEIGHT};
+var vr2 = new ViewRect({//x: 0, y: 0, w: 50, h: 50,
+                        x: 0, y: 0, w: WIDTH, h: HEIGHT,
+                        //vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
+                        vx: 0, vy: 0, vw: 50, vh: 50,
+			quadtree: qt, ctx: stage});
+//vr2.color = 0x000000;
+
+//qt.insert(vr);
+//qt.insert(vr2);
+
+// main view
+var mv = vr;
+
 var render_rect = {x:0, y:0, w:WIDTH, h:HEIGHT};
 
 window.addEventListener('mousemove', function(event) {
   //requestAnimFrame(animate);
 }, false);
 
+var trans_prop = 0.01;
 window.addEventListener('keydown', function(event) {
   event.preventDefault();
   requestAnimFrame(animate);
   switch (event.keyCode) {
-  case 37: view_rect.x -= 5; break; // left
-  case 38: view_rect.y -= 5; break; // up
-  case 39: view_rect.x += 5; break; // right
-  case 40: view_rect.y += 5; break; // down
+  case 37: mv.view.x -= mv.view.w*trans_prop; break; // left
+  case 38: mv.view.y -= mv.view.h*trans_prop; break; // up
+  case 39: mv.view.x += mv.view.w*trans_prop; break; // right
+  case 40: mv.view.y += mv.view.h*trans_prop; break; // down
   }
 }, false);
 
-// MAKE TRANSLATION DEPEND ON SCALE??
-// just translate by some proportion of the view's size
+// TODO: so should move scale and translate stuff to objects themselves
 
 var scale = 1.25;
 var zoomr = null;
-window.addEventListener('mousewheel', function(event) {
+// if change to canvas-only event, can use mouse coordinates?
+window.addEventListener('wheel', function(event) {
   event.preventDefault();
   requestAnimFrame(animate);
-  // uhh
-  switch (event.wheelDelta > 0) {
+  //switch (event.wheelDelta > 0) {
+  switch (event.deltaY > 0) {
   case false: // shrink (zoom in)
-    zoomr = scale_view(view_rect, scale);
+    zoomr = scale_view(mv.view, scale);
     break; 
   case true:  // grow (zoom out)
-    zoomr = scale_view(view_rect, 1/scale);
+    zoomr = scale_view(mv.view, 1/scale);
     break; 
   }
-  view_rect.x = zoomr.x; view_rect.y = zoomr.y;
-  view_rect.w = zoomr.w; view_rect.h = zoomr.h;
-  //console.log(view_rect);
+  mv.view.x = zoomr.x; mv.view.y = zoomr.y;
+  mv.view.w = zoomr.w; mv.view.h = zoomr.h;
 }, false);
 
 // remove this or put somewhere else
@@ -185,6 +193,17 @@ function scale_view(view, scale) {
 
 // need to have quadtree affected by view...
 // does that mean...putting qt inside qt??
+
+
+/*
+need to handle z-related stuff - like drawing all rects on top of everything?
+
+should change name of render_rect to something like canvas_rect
+
+how to have one viewrect that doesn't actually display anything on actual
+surface but still draws to canvas?
+just don't put in quadtree?
+*/
 
 
 requestAnimFrame(animate);
@@ -201,8 +220,10 @@ function animate() {
   // draw the quadtree
   //draw_qt();
   //highlight_rects();
-  
-  vr.render(view_rect, render_rect);
+
+  //console.log(render_rect);
+  vr.clear();
+  vr.render(mv.view, render_rect);
 
   /*
   // update graphics
@@ -232,21 +253,26 @@ function draw_qt() {
   // just need to draw a rectangle for every child, top-down
   // hmm, easier to just add a small drawing function to QNode? ehhh.
   qt_rect.clear();
-  qt_rect.x = -view_rect.x; qt_rect.y = -view_rect.y;
+  qt_rect.x = -mv.view.x; qt_rect.y = -mv.view.y;
   qt.root.draw(qt_rect);
 }
 
 // insert a random-sized rectangle wherever we clicked
 function insert_rectangle(mouseData) {
   requestAnimFrame(animate);
-  var max_w = 5, max_h = 5;
-  var r = canvas_to_surface({x:mouseData.global.x, y:mouseData.global.y,
-			     //w:Math.random()*max_w, h:Math.random()*max_h,
-			     w:max_w, h:max_h}, render_rect, view_rect);
-  r.w = max_w; r.h = max_h;
-  r.ctx = stage;
-  var rect = new Rect(r);
 
+  // get 'out' rect coords
+  var out = transform_rect(mv, mv.view, render_rect);
+  out.x += render_rect.x; out.y += render_rect.y;
+
+  // get surface coords
+  var surf = transform_rect({x:mouseData.global.x, y:mouseData.global.y},
+			    out, mv.view);
+  surf.x += mv.view.x; surf.y += mv.view.y;
+  surf.w = 5; surf.h = 5;
+  surf.ctx = stage;
+  
+  var rect = new Rect(surf);
   // insert into quadtree
   qt.insert(rect);
 }
@@ -258,7 +284,7 @@ function highlight_rects() {
   var all = qt.query(null, null);
   var mouse = stage.getMousePosition();
   var r = canvas_to_surface({x:mouse.x, y:mouse.y, w:1, h:1},
-			    render_rect, view_rect);
+			    render_rect, mv.view);
   var ids = qt.query(r, null, true);
 
   // COULD ADD A 'DIRTY' PARAMETER TO OBJECTS FOR RERENDERING?
