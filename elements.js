@@ -9,7 +9,12 @@
 - inheritance / traversing prototype chain is slow?
 - consider adding some minimal-size thresh to view_rect so doesn't keep
   drawing smaller and smaller view_rects
+- cool if in rendered thing stored reference to rendered version so can just
+  'copy-paste' it there instead of having to re-render?
 */
+
+var size_thresh = 3;
+var render_limit = 1; // number of times to render anys ViewRects
 
 function Rect(args) {
   // rectangle id and bounds on the whiteboard
@@ -21,7 +26,7 @@ function Rect(args) {
   this.surfaces = {};
 
   // graphics...
-  this.color = 0x0077AA;
+  this.color = 0x0077EE;
   this.rect  = new PIXI.Graphics();
   args.ctx.addChild(this.rect);
 }
@@ -32,10 +37,12 @@ Rect.prototype.render = function(view_rect, render_rect) {
   
   // figure out equivalent rect in render_rect frame
   var t = transform_rect(this, view_rect, render_rect);
+  t.x += render_rect.x; t.y += render_rect.y;
 
   // then draw it
-  //this.rect.clear();
+  //this.rect.clear(); // TODO: don't think you need to clear here...
   this.rect.beginFill(this.color);
+  // TODO: make transform_rect do addition to translate by default!!
   this.rect.drawRect(t.x, t.y, t.w, t.h);
 };
 
@@ -48,8 +55,7 @@ function ViewRect(args) {
 
   // have 'ouput' bounds (where ViewRect appears on surface),
   // now need 'input' bounds (what the ViewRect views on the surface)
-  this.ix = args.ix; this.iy = args.iy;
-  this.iw = args.iw; this.ih = args.ih;
+  this.view = {x: args.vx, y:args.vy, w:args.vw, h:args.vh};
 
   // quadtree to query
   this.quadtree = args.quadtree;
@@ -63,45 +69,53 @@ function ViewRect(args) {
 ViewRect.prototype = Object.create(Rect.prototype);
 ViewRect.prototype.constructor = ViewRect;
 
+ViewRect.prototype.clear = function(cleared) {
+  // probably...shouldn't do this every time...
+  cleared = cleared || {};
+  cleared[this.id] = cleared[this.id]+1 || 1;
+  if (cleared[this.id] > 1) return;
+  
+  this.rect.clear();
+  
+  // tell everything you previously saw to clear itself
+  for (var i = 0; i < this.prev_ids.length; i++)
+    if (this.prev_ids[i] !== this.id)
+      this.quadtree.obj_ids[this.prev_ids[i]].clear(cleared);
+};
+
 // render onto rectangle rect of  context ctx unless w or h are <= thresh
-ViewRect.prototype.render = function(view_rect, render_rect) { // thresh
+ViewRect.prototype.render = function(view_rect, render_rect, rendered) { 
+  // object to keep track of what's been rendered
+  rendered = rendered || {};
+  rendered[this.id] = rendered[this.id]+1 || 1;
+  if (rendered[this.id] > render_limit) return;
+  if (render_rect.w <= size_thresh || render_rect.h <= size_thresh)
+    return;
+  
   // figure out equivalent rect in render_rect frame
   var t = transform_rect(this, view_rect, render_rect);
-  
+  t.x += render_rect.x; t.y += render_rect.y;
+
+  if (t.w <= size_thresh || t.h <= size_thresh)
+    return;
+
   // draw self
-  this.rect.clear();
+  //this.rect.clear();
   this.rect.lineStyle(1, 0x000000);
   this.rect.beginFill(this.color);
   this.rect.drawRect(t.x, t.y, t.w, t.h);
 
   // query the surface for stuff to draw - nothing fancy for now
   var ids = this.quadtree.query(view_rect), i = 0;
-  
-  // tell everything you previously saw to clear itself
-  for (i=0; i < this.prev_ids.length; i++)
-    this.quadtree.obj_ids[this.prev_ids[i]].clear();
   this.prev_ids = ids;
   
   // tell everything to render itself
-  for (var i=0; i < ids.length; i++)
+  for (var i=0; i < ids.length; i++) {
+    // make sure don't render self - IDEALLY DON'T HAVE TO DO THIS?
     if (ids[i] !== this.id)
-      this.quadtree.obj_ids[ids[i]].render(view_rect, render_rect);
-  // sure you don't want to pass different rects?
-  // hmm, should be..same?
-
-  
-  
-  // should have extra 'is_main_view' thing? that would keep from
-  // querying stuff underneath and skip drawing self and...other stuff
-  // can tell using rects?
-
-  // so ViewRect has rect and input_rect
-  // then gets view_rect and render_rect
-  // what does each mean?
-  // rect is location of viewrect 'output' on *surface*
-  // input_rect is location of viewrect 'input' on *surface*
-  // view_rect is location of current view
-  // render_rect is area to render to on canvas
+      //this.quadtree.obj_ids[ids[i]].render(view_rect, render_rect, depth+1);
+      this.quadtree.obj_ids[ids[i]].render(view_rect, t, rendered);
+  }
 };
 
 // 'transform' passed rect from a to b
