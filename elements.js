@@ -84,13 +84,16 @@ ViewRect.prototype.clear = function(cleared) {
 };
 
 // render onto rectangle rect of  context ctx unless w or h are <= thresh
-ViewRect.prototype.render = function(view_rect, render_rect, rendered) { 
+ViewRect.prototype.render = function(view_rect, render_rect,
+				     rendered, main_view) { 
   // object to keep track of what's been rendered
   rendered = rendered || {};
   rendered[this.id] = rendered[this.id]+1 || 1;
   if (rendered[this.id] > render_limit) return;
   if (render_rect.w <= size_thresh || render_rect.h <= size_thresh)
     return;
+
+  main_view = main_view || false;
   
   // figure out equivalent rect in render_rect frame
   var t = transform_rect(this, view_rect, render_rect);
@@ -99,22 +102,31 @@ ViewRect.prototype.render = function(view_rect, render_rect, rendered) {
   if (t.w <= size_thresh || t.h <= size_thresh)
     return;
 
+  if (main_view) {
+    this.x = this.view.x; this.y = this.view.y;
+    this.w = this.view.w; this.h = this.view.h;
+    //this.x = view_rect.x; this.y = view_rect.y;
+    //this.w = view_rect.w; this.h = view_rect.h;
+  }
+  
   // draw self
   //this.rect.clear();
   this.rect.lineStyle(1, 0x000000);
   this.rect.beginFill(this.color);
   this.rect.drawRect(t.x, t.y, t.w, t.h);
 
+  
   // query the surface for stuff to draw - nothing fancy for now
-  var ids = this.quadtree.query(view_rect), i = 0;
+  //var ids = this.quadtree.query(view_rect), i = 0;
+  var ids = this.quadtree.query(this.view), i = 0;
   this.prev_ids = ids;
   
   // tell everything to render itself
   for (var i=0; i < ids.length; i++) {
     // make sure don't render self - IDEALLY DON'T HAVE TO DO THIS?
-    if (ids[i] !== this.id)
-      //this.quadtree.obj_ids[ids[i]].render(view_rect, render_rect, depth+1);
-      this.quadtree.obj_ids[ids[i]].render(view_rect, t, rendered);
+    if (ids[i] !== this.id) {
+      this.quadtree.obj_ids[ids[i]].render(this.view, t, rendered);
+    }
   }
 };
 
