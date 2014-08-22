@@ -37,6 +37,8 @@
   and put them in a 'tools' namespace or something
 - allow zoomin in to where mouse is?
 - make sure things are converted to integer coordinates? looks ugly otherwise
+- things get weird when zoomed in to far
+- shouldn't render bits of things that are partially off the view...
 */
 
 //var WIDTH  = window.innerWidth,
@@ -131,24 +133,20 @@ var vr = new ViewRect({//x:  0, y:  0, w:  0, h:  0,
 		       vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
 		       quadtree: qt, ctx: stage});
 
-var vr2 = new ViewRect({//x: 0, y: 0, w: 50, h: 50,
-                        x: 0, y: 0, w: WIDTH, h: HEIGHT,
+var vr2 = new ViewRect({x: 0, y: 0, w: 50, h: 50,
+                        //x: 0, y: 0, w: WIDTH, h: HEIGHT,
                         //vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
-                        vx: 0, vy: 0, vw: 50, vh: 50,
+                        vx: 0, vy: 50, vw: 50, vh: 50,
 			quadtree: qt, ctx: stage});
 //vr2.color = 0x000000;
 
-//qt.insert(vr);
-//qt.insert(vr2);
+qt.insert(vr);
+qt.insert(vr2);
 
 // main view
 var mv = vr;
 
 var render_rect = {x:0, y:0, w:WIDTH, h:HEIGHT};
-
-window.addEventListener('mousemove', function(event) {
-  //requestAnimFrame(animate);
-}, false);
 
 var trans_prop = 0.01;
 window.addEventListener('keydown', function(event) {
@@ -203,6 +201,8 @@ should change name of render_rect to something like canvas_rect
 how to have one viewrect that doesn't actually display anything on actual
 surface but still draws to canvas?
 just don't put in quadtree?
+and maybe have a 'main-view' parameter...
+so should you just always move the actual rect to match the view rect
 */
 
 
@@ -223,7 +223,7 @@ function animate() {
 
   //console.log(render_rect);
   vr.clear();
-  vr.render(mv.view, render_rect);
+  vr.render(mv.view, render_rect, {}, true);
 
   /*
   // update graphics
