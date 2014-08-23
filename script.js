@@ -23,7 +23,18 @@
 */
 
 /* mini-todo
-- allow highlighting/dragging/deleting stuff
+- allow highlighting
+  just check to see if clicking something
+  if so change its color
+  keep track of what's highlighted
+  and when something else (or nothing) is clicked, reset its color
+  could 'highlight' a viewrect?? by changing background or boldening lines??
+  and then...could maybe allow it to be set to mv? if...hit button...
+- allow deleting
+  just remove highlighted thing by id!
+- allow dragging
+  alternately control with arrow keys
+  maybe adding dragging to view would make this easier?
 - move event handling stuff to UI handler!
 */
 
