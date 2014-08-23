@@ -115,12 +115,3 @@ function animate() {
   // render the stage
   renderer.render(stage);
 };
-
-// draw the bounds of the quadtree
-function draw_qt() {
-  // just need to draw a rectangle for every child, top-down
-  // hmm, easier to just add a small drawing function to QNode? ehhh.
-  qt_rect.clear();
-  qt_rect.x = -mv.view.x; qt_rect.y = -mv.view.y;
-  qt.root.draw(qt_rect);
-}
