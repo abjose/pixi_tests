@@ -144,14 +144,6 @@ ViewRect.prototype.insert = function() {
   // just to make it easier to bind to things
 };
 
-// remove this or put somewhere else
-function scale_view(view, scale) {
-  var new_w = view.w * scale;  var new_h = view.h * scale;
-  var new_x = view.x - (new_w-view.w)/2;
-  var new_y = view.y - (new_h-view.h)/2;
-  return {x: new_x, y: new_y, w: new_w, h: new_h};
-};
-
 // 'transform' passed rect from a to b
 function transform_rect(rect, a, b) {
   return {x: ((rect.x - a.x) / a.w) * b.w + b.x,
