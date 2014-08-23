@@ -23,12 +23,12 @@
 */
 
 /* mini-todo
-- add insert_viewrect into viewrect????
 - add handle_click functions to things and pass clicks a long
   goal: be able to click on smaller view and see rect appear in right place
   on other view too
   good reason not to use built-in event stuff?
-- allow dragging stuff around...by clicking on it...
+- allow highlighting/dragging/deleting stuff
+- move event handling stuff to UI handler!
 */
 
 //var WIDTH  = window.innerWidth,
@@ -96,13 +96,11 @@ window.addEventListener('wheel', function(event) {
   }
 }, false);
 // add temporary click callback
-//stage.click = insert_rectangle;
 stage.click = function(e) {
   //event.preventDefault();
   requestAnimFrame(animate);
-  mv.insert_rectangle(e, canvas_rect);
+  mv.handle_click({x:e.global.x, y:e.global.y}, mv.view, canvas_rect);
 };
-
 
 requestAnimFrame(animate);
 function animate() {

@@ -15,7 +15,7 @@
 
 var size_thresh = 3;
 var render_limit = 1; // number of times to render anys ViewRects
-var trans_prop = 0.01;
+var trans_prop = 0.1;
 var scale_prop = 1.25;
 
 function Rect(args) {
@@ -31,8 +31,7 @@ function Rect(args) {
   this.color = 0x0077EE;
   this.rect  = new PIXI.Graphics();
   this.stage = args.stage;
-  //this.stage.addChild(this.rect);
-  args.stage.addChild(this.rect);
+  this.stage.addChild(this.rect);
 }
 
 Rect.prototype.render = function(view_rect, render_rect) {
@@ -140,23 +139,54 @@ ViewRect.prototype.translate = function(dx, dy) {
   this.view.y += dy*this.view.h*trans_prop;
 };
 
-ViewRect.prototype.insert_rectangle = function(mouseData, render_rect) {
-  // TODO: can combine both insert functions into one?
-  // get 'out' rect coords
-  var out = transform_rect(this, this.view, render_rect);
+ViewRect.prototype.handle_click = function(click, view_rect, render_rect, objs){
+  // worth storing render_rect? or...just having it be global...
+  // because I think it'll be the same for every call?
+  // TODO: figure out how to 'pass along' click without re-transforming
+  // in entirety every time
 
-  // get surface coords
-  var surf = transform_rect({x:mouseData.global.x, y:mouseData.global.y},
-			    out, this.view);
-  surf.w = 5; surf.h = 5;
-  surf.stage = this.stage;
+  // filter out things this click has been through
+  objs = objs || {};
+  objs[this.id] = true;
+  
+  // transform click to surface
+  var surf = this.click_to_surface(click, view_rect, render_rect);
+
+  // query that location
+  var ids = this.quadtree.query(surf);
+  // filter objects that have already handled - do this better (like in query)
+  ids = ids.filter(function(id) { return !objs[id]; });
+  
+  // tell whatever we clicked to handle it
+  for(var i = 0; i < ids.length; i++) {
+    var obj = this.quadtree.obj_ids[ids[i]];
+    obj.handle_click(click, view_rect, render_rect, objs);
+  }
+
+  // if not clicking anything, make a rectangle
+  if (ids.length === 0)
+    this.insert_rectangle(surf);
+};
+
+ViewRect.prototype.insert_rectangle = function(rect) {
+  // TODO: can combine both insert functions into one?
+  // transform click to surface
+  rect.w = 5; rect.h = 5;
+  rect.stage = this.stage;
   
   // insert into quadtree
-  qt.insert(new Rect(surf));
+  qt.insert(new Rect(rect));
 };
 
 ViewRect.prototype.insert_viewrect = function() {
 
+};
+
+// transform from canvas click to location on surface
+ViewRect.prototype.click_to_surface = function(click, view_rect, render_rect) {
+  return transform_rect({x:click.x, y:click.y, w:1, h:1},
+			transform_rect(this, view_rect, render_rect),
+			this.view);
 };
 
 // 'transform' passed rect from a to b
@@ -166,3 +196,5 @@ function transform_rect(rect, a, b) {
 	  w: rect.w * (b.w / a.w),
 	  h: rect.h * (b.h / a.h) };
 }
+
+
