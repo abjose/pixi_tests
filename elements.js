@@ -15,6 +15,8 @@
 
 var size_thresh = 3;
 var render_limit = 1; // number of times to render anys ViewRects
+var trans_prop = 0.01;
+var scale_prop = 1.25;
 
 function Rect(args) {
   // rectangle id and bounds on the whiteboard
@@ -119,6 +121,35 @@ ViewRect.prototype.render = function(view_rect, render_rect,
       this.quadtree.obj_ids[ids[i]].render(this.view, t, rendered);
     }
   }
+};
+
+// scale view
+ViewRect.prototype.scale = function(dz) {
+  var old_w = this.view.w, old_h = this.view.h;
+  this.view.w = this.view.w * dz;
+  this.view.h = this.view.h * dz;
+  this.view.x = this.view.x - (this.view.w-old_w)/2;
+  this.view.y = this.view.y - (this.view.h-old_h)/2;
+};
+
+// translate view
+ViewRect.prototype.translate = function(dx, dy) {
+  this.view.x += dx*this.view.w*trans_prop;
+  this.view.y += dy*this.view.h*trans_prop;
+};
+
+ViewRect.prototype.insert = function() {
+  // need to make one for each? ideally not
+  // or could make wrappers
+  // just to make it easier to bind to things
+};
+
+// remove this or put somewhere else
+function scale_view(view, scale) {
+  var new_w = view.w * scale;  var new_h = view.h * scale;
+  var new_x = view.x - (new_w-view.w)/2;
+  var new_y = view.y - (new_h-view.h)/2;
+  return {x: new_x, y: new_y, w: new_w, h: new_h};
 };
 
 // 'transform' passed rect from a to b
