@@ -39,6 +39,11 @@
 - make sure things are converted to integer coordinates? looks ugly otherwise
 - things get weird when zoomed in to far
 - shouldn't render bits of things that are partially off the view...
+- need to handle z-related stuff - like drawing all rects on top of everything?
+- should change name of render_rect to something like canvas_rect
+- should have clicks be sent as events to rectangles? like if click on viewrect
+  should pass to that viewrect, and then if a viewrect inside was clicked,
+  should pass through...
 */
 
 //var WIDTH  = window.innerWidth,
@@ -188,23 +193,6 @@ function scale_view(view, scale) {
   var new_y = view.y - (new_h-view.h)/2;
   return {x: new_x, y: new_y, w: new_w, h: new_h};
 };
-
-// need to have quadtree affected by view...
-// does that mean...putting qt inside qt??
-
-
-/*
-need to handle z-related stuff - like drawing all rects on top of everything?
-
-should change name of render_rect to something like canvas_rect
-
-how to have one viewrect that doesn't actually display anything on actual
-surface but still draws to canvas?
-just don't put in quadtree?
-and maybe have a 'main-view' parameter...
-so should you just always move the actual rect to match the view rect
-*/
-
 
 requestAnimFrame(animate);
 function animate() {

@@ -98,8 +98,6 @@ ViewRect.prototype.render = function(view_rect, render_rect,
   if (main_view) {
     this.x = this.view.x; this.y = this.view.y;
     this.w = this.view.w; this.h = this.view.h;
-    //this.x = view_rect.x; this.y = view_rect.y;
-    //this.w = view_rect.w; this.h = view_rect.h;
   }
 
   // figure out equivalent rect in render_rect frame
@@ -117,7 +115,6 @@ ViewRect.prototype.render = function(view_rect, render_rect,
 
   
   // query the surface for stuff to draw - nothing fancy for now
-  //var ids = this.quadtree.query(view_rect), i = 0;
   var ids = this.quadtree.query(this.view), i = 0;
   this.prev_ids = ids;
   
