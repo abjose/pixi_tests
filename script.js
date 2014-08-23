@@ -42,8 +42,6 @@ var WEIRD_PADDING = 10;
 var interactive = true;
 //var stage = new PIXI.Stage(0x66FF99, interactive);
 var stage = new PIXI.Stage(0xFFFFFF, interactive);
-// add temporary click callback
-stage.click = insert_rectangle;
 
 // create a renderer instance
 //var renderer = PIXI.autoDetectRenderer(WIDTH, HEIGHT);
@@ -63,13 +61,13 @@ var canvas_rect = {x:0, y:0, w:WIDTH, h:HEIGHT};
 var vr = new ViewRect({//x:  0, y:  0, w:  0, h:  0,
 		       x:  0, y:  0, w:  WIDTH, h:  HEIGHT,
 		       vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
-		       quadtree: qt, ctx: stage});
+		       quadtree: qt, stage: stage});
 
 var vr2 = new ViewRect({x: 0, y: 0, w: 50, h: 50,
                         //x: 0, y: 0, w: WIDTH, h: HEIGHT,
                         //vx: 0, vy: 0, vw: WIDTH, vh: HEIGHT,
                         vx: 0, vy: 50, vw: 50, vh: 50,
-			quadtree: qt, ctx: stage});
+			quadtree: qt, stage: stage});
 qt.insert(vr);
 qt.insert(vr2);
 
@@ -78,7 +76,7 @@ var mv = vr;
 
 // temporary input handling
 window.addEventListener('keydown', function(event) {
-  event.preventDefault();
+  //event.preventDefault();
   requestAnimFrame(animate);
   switch (event.keyCode) {
   case 37: mv.translate(-1,  0); break; // left
@@ -90,7 +88,7 @@ window.addEventListener('keydown', function(event) {
 
 // if change to canvas-only event, can use mouse coordinates?
 window.addEventListener('wheel', function(event) {
-  event.preventDefault();
+  //event.preventDefault();
   requestAnimFrame(animate);
   //switch (event.wheelDelta > 0) {
   switch (event.deltaY > 0) {
@@ -98,6 +96,14 @@ window.addEventListener('wheel', function(event) {
   case true:  mv.scale(1/scale_prop); break; 
   }
 }, false);
+// add temporary click callback
+//stage.click = insert_rectangle;
+stage.click = function(e) {
+  //event.preventDefault();
+  requestAnimFrame(animate);
+  mv.insert_rectangle(e, canvas_rect);
+};
+
 
 requestAnimFrame(animate);
 function animate() {
@@ -117,22 +123,4 @@ function draw_qt() {
   qt_rect.clear();
   qt_rect.x = -mv.view.x; qt_rect.y = -mv.view.y;
   qt.root.draw(qt_rect);
-}
-
-// insert a random-sized rectangle wherever we clicked
-function insert_rectangle(mouseData) {
-  requestAnimFrame(animate);
-
-  // get 'out' rect coords
-  var out = transform_rect(mv, mv.view, canvas_rect);
-
-  // get surface coords
-  var surf = transform_rect({x:mouseData.global.x, y:mouseData.global.y},
-			    out, mv.view);
-  surf.w = 5; surf.h = 5;
-  surf.ctx = stage;
-  
-  var rect = new Rect(surf);
-  // insert into quadtree
-  qt.insert(rect);
 }

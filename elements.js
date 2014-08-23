@@ -30,7 +30,9 @@ function Rect(args) {
   // graphics...
   this.color = 0x0077EE;
   this.rect  = new PIXI.Graphics();
-  args.ctx.addChild(this.rect);
+  this.stage = args.stage;
+  //this.stage.addChild(this.rect);
+  args.stage.addChild(this.rect);
 }
 
 Rect.prototype.render = function(view_rect, render_rect) {
@@ -138,10 +140,23 @@ ViewRect.prototype.translate = function(dx, dy) {
   this.view.y += dy*this.view.h*trans_prop;
 };
 
-ViewRect.prototype.insert = function() {
-  // need to make one for each? ideally not
-  // or could make wrappers
-  // just to make it easier to bind to things
+ViewRect.prototype.insert_rectangle = function(mouseData, render_rect) {
+  // TODO: can combine both insert functions into one?
+  // get 'out' rect coords
+  var out = transform_rect(this, this.view, render_rect);
+
+  // get surface coords
+  var surf = transform_rect({x:mouseData.global.x, y:mouseData.global.y},
+			    out, this.view);
+  surf.w = 5; surf.h = 5;
+  surf.stage = this.stage;
+  
+  // insert into quadtree
+  qt.insert(new Rect(surf));
+};
+
+ViewRect.prototype.insert_viewrect = function() {
+
 };
 
 // 'transform' passed rect from a to b
