@@ -95,19 +95,19 @@ ViewRect.prototype.render = function(view_rect, render_rect,
 
   main_view = main_view || false;
   
-  // figure out equivalent rect in render_rect frame
-  var t = transform_rect(this, view_rect, render_rect);
-  t.x += render_rect.x; t.y += render_rect.y;
-
-  if (t.w <= size_thresh || t.h <= size_thresh)
-    return;
-
   if (main_view) {
     this.x = this.view.x; this.y = this.view.y;
     this.w = this.view.w; this.h = this.view.h;
     //this.x = view_rect.x; this.y = view_rect.y;
     //this.w = view_rect.w; this.h = view_rect.h;
   }
+
+  // figure out equivalent rect in render_rect frame
+  var t = transform_rect(this, view_rect, render_rect);
+  t.x += render_rect.x; t.y += render_rect.y;
+
+  if (t.w <= size_thresh || t.h <= size_thresh)
+    return;
   
   // draw self
   //this.rect.clear();
