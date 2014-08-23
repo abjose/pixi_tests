@@ -23,10 +23,6 @@
 */
 
 /* mini-todo
-- add handle_click functions to things and pass clicks a long
-  goal: be able to click on smaller view and see rect appear in right place
-  on other view too
-  good reason not to use built-in event stuff?
 - allow highlighting/dragging/deleting stuff
 - move event handling stuff to UI handler!
 */
