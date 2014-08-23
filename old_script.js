@@ -47,6 +47,9 @@
   so add a handle_click thing to everything?
   yeah, should take a click location
 - ALSO MAKE SURE TO MAKE SMALL CHANGES
+- kinda cool to do something like a typical maps app - where when you 
+  zoom out, things are 'summarized' in a sense, like instead of text you 
+  see a larger text 'name' for a document or area...ehh.
 */
 
 /* mini-todo
