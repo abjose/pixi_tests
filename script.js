@@ -23,13 +23,12 @@
 */
 
 /* mini-todo
-- move scale and translate code into objects themselves
-- move insert_rectangle into viewrect?
 - add insert_viewrect into viewrect????
 - add handle_click functions to things and pass clicks a long
   goal: be able to click on smaller view and see rect appear in right place
   on other view too
   good reason not to use built-in event stuff?
+- allow dragging stuff around...by clicking on it...
 */
 
 //var WIDTH  = window.innerWidth,
