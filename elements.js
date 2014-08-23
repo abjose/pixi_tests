@@ -37,12 +37,9 @@ Rect.prototype.render = function(view_rect, render_rect) {
   
   // figure out equivalent rect in render_rect frame
   var t = transform_rect(this, view_rect, render_rect);
-  t.x += render_rect.x; t.y += render_rect.y;
 
   // then draw it
-  //this.rect.clear(); // TODO: don't think you need to clear here...
   this.rect.beginFill(this.color);
-  // TODO: make transform_rect do addition to translate by default!!
   this.rect.drawRect(t.x, t.y, t.w, t.h);
 };
 
@@ -102,7 +99,6 @@ ViewRect.prototype.render = function(view_rect, render_rect,
 
   // figure out equivalent rect in render_rect frame
   var t = transform_rect(this, view_rect, render_rect);
-  t.x += render_rect.x; t.y += render_rect.y;
 
   if (t.w <= size_thresh || t.h <= size_thresh)
     return;
@@ -129,16 +125,8 @@ ViewRect.prototype.render = function(view_rect, render_rect,
 
 // 'transform' passed rect from a to b
 function transform_rect(rect, a, b) {
-  return {x: ((rect.x - a.x) / a.w) * b.w,
-	  y: ((rect.y - a.y) / a.h) * b.h,
+  return {x: ((rect.x - a.x) / a.w) * b.w + b.x,
+	  y: ((rect.y - a.y) / a.h) * b.h + b.y,
 	  w: rect.w * (b.w / a.w),
 	  h: rect.h * (b.h / a.h) };
-}
-
-// convert canvas coords to surface coords
-// consider making this an option for transform_rect or something
-function canvas_to_surface(rect, render_rect, view_rect) {
-  var r = transform_rect(rect, render_rect, view_rect);
-  r.x += view_rect.x; r.y += view_rect.y;
-  return r;
 }

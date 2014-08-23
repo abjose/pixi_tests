@@ -35,15 +35,28 @@
 - consider using multiple stacked canvases 
 - put global functions (that aren't 'classes') into a utilities file?
   and put them in a 'tools' namespace or something
-- allow zoomin in to where mouse is?
+- allow zooming in to where mouse is?
 - make sure things are converted to integer coordinates? looks ugly otherwise
-- things get weird when zoomed in to far
+- things get weird when zoomed in too far
 - shouldn't render bits of things that are partially off the view...
 - need to handle z-related stuff - like drawing all rects on top of everything?
 - should change name of render_rect to something like canvas_rect
 - should have clicks be sent as events to rectangles? like if click on viewrect
   should pass to that viewrect, and then if a viewrect inside was clicked,
   should pass through...
+  so add a handle_click thing to everything?
+  yeah, should take a click location
+- ALSO MAKE SURE TO MAKE SMALL CHANGES
+*/
+
+/* mini-todo
+- make small changes - like adding proper offsets to transformation function
+  cleaning stuff up, commenting a bit
+- move this stuff into new file? like tests...just so don't have to deal
+  with all this old code, then integrate later
+- add handle_click functions to things and pass clicks a long
+  goal: be able to click on smaller view and see rect appear in right place
+  on other view too
 */
 
 //var WIDTH  = window.innerWidth,
@@ -251,12 +264,10 @@ function insert_rectangle(mouseData) {
 
   // get 'out' rect coords
   var out = transform_rect(mv, mv.view, render_rect);
-  out.x += render_rect.x; out.y += render_rect.y;
 
   // get surface coords
   var surf = transform_rect({x:mouseData.global.x, y:mouseData.global.y},
 			    out, mv.view);
-  surf.x += mv.view.x; surf.y += mv.view.y;
   surf.w = 5; surf.h = 5;
   surf.ctx = stage;
   
@@ -271,8 +282,8 @@ function highlight_rects() {
   // instead of redrawing everything all the time
   var all = qt.query(null, null);
   var mouse = stage.getMousePosition();
-  var r = canvas_to_surface({x:mouse.x, y:mouse.y, w:1, h:1},
-			    render_rect, mv.view);
+  var r = transform_rect({x:mouse.x, y:mouse.y, w:1, h:1},
+			 render_rect, mv.view);
   var ids = qt.query(r, null, true);
 
   // COULD ADD A 'DIRTY' PARAMETER TO OBJECTS FOR RERENDERING?
