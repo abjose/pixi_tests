@@ -20,22 +20,25 @@
   should pass through...
   so add a handle_click thing to everything?
   yeah, should take a click location
+- For simple interface - have little button and pop up div?
+- If adding dragging stuff, consider thinking about 'update' function for 
+  quadtree!
+- make highlighting better - better if keep track from UI manager?
 */
 
 /* mini-todo
-- allow highlighting
-  just check to see if clicking something
-  if so change its color
-  keep track of what's highlighted
-  and when something else (or nothing) is clicked, reset its color
-  could 'highlight' a viewrect?? by changing background or boldening lines??
-  and then...could maybe allow it to be set to mv? if...hit button...
+- move event handling stuff to UI handler!
+  UI handler could track list of main view changes
+  Can just be list, nothing fancy
+  Last element is current main view 
+  Also change name to 'ui manager'?
 - allow deleting
   just remove highlighted thing by id!
 - allow dragging
   alternately control with arrow keys
   maybe adding dragging to view would make this easier?
-- move event handling stuff to UI handler!
+  add handle-drag fns?
+  drag view if main view, otherwise drag rect
 */
 
 //var WIDTH  = window.innerWidth,

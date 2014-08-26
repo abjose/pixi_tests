@@ -46,6 +46,20 @@ Rect.prototype.render = function(view_rect, render_rect) {
   this.rect.drawRect(t.x, t.y, t.w, t.h);
 };
 
+Rect.prototype.handle_click = function(click, view_rect, render_rect, objs) {
+  // highlight self?
+  this.highlight(true);
+};
+
+Rect.prototype.highlight = function(is_highlighted) {
+  // highlight if is_highlighted is true, else un-highlight
+  if (is_highlighted) {
+    this.color = 0xFF0000;
+  } else {
+    this.color = 0x0077EE; 
+  }
+};
+
 Rect.prototype.clear = function() {
   this.rect.clear();
 }
@@ -63,8 +77,14 @@ function ViewRect(args) {
   // previously-seen stuff
   this.prev_ids = [];
 
-  // be same color as background
+  // display stuff
   this.color = 0x66FF99;
+  this.line_width = 1;
+  this.line_color = 0x000000;
+
+  // thing that's highlighted - probably want to use an object or something
+  // or just do somewhere else entirely (like in UI manager)
+  this.highlighted = null;  
 }
 ViewRect.prototype = Object.create(Rect.prototype);
 ViewRect.prototype.constructor = ViewRect;
@@ -84,6 +104,7 @@ ViewRect.prototype.clear = function(cleared) {
 };
 
 // render onto rectangle rect of  context ctx unless w or h are <= thresh
+// TODO: split this function up!
 ViewRect.prototype.render = function(view_rect, render_rect,
 				     rendered, main_view) {
   // object to keep track of what's been rendered
@@ -107,7 +128,7 @@ ViewRect.prototype.render = function(view_rect, render_rect,
   if (t.w <= size_thresh || t.h <= size_thresh) return;
   
   // draw self
-  this.rect.lineStyle(1, 0x000000);
+  this.rect.lineStyle(this.line_width, this.line_color);
   this.rect.beginFill(this.color);
   this.rect.drawRect(t.x, t.y, t.w, t.h);
   
@@ -156,16 +177,36 @@ ViewRect.prototype.handle_click = function(click, view_rect, render_rect, objs){
   var ids = this.quadtree.query(surf);
   // filter objects that have already handled - do this better (like in query)
   ids = ids.filter(function(id) { return !objs[id]; });
+
+  // un-highlight previous thing
+  if (this.highlighted != null)
+    this.quadtree.obj_ids[this.highlighted].highlight(false);
+  // highlight self?
+  this.highlight(true);
   
   // tell whatever we clicked to handle it
   for(var i = 0; i < ids.length; i++) {
     var obj = this.quadtree.obj_ids[ids[i]];
     obj.handle_click(click, view_rect, render_rect, objs);
+    // set as highlighted
+    this.highlighted = ids[i];
   }
 
   // if not clicking anything, make a rectangle
   if (ids.length === 0)
     this.insert_rectangle(surf);
+};
+
+ViewRect.prototype.highlight = function(is_highlighted) {
+  // highlight if is_highlighted is true, else un-highlight
+  if (is_highlighted) {
+    // should bold outline instead
+    this.line_width = 1;
+    this.line_color = 0xFF0000;
+  } else {
+    this.line_width = 1;
+    this.line_color = 0x000000;
+  }
 };
 
 ViewRect.prototype.insert_rectangle = function(rect) {
