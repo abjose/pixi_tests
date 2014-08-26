@@ -14,24 +14,17 @@
 - things get weird when zoomed in too far
 - shouldn't render bits of things that are partially off the view...
 - need to handle z-related stuff - like drawing all rects on top of everything?
-- should change name of render_rect to something like canvas_rect
 - should have clicks be sent as events to rectangles? like if click on viewrect
   should pass to that viewrect, and then if a viewrect inside was clicked,
   should pass through...
   so add a handle_click thing to everything?
   yeah, should take a click location
 - For simple interface - have little button and pop up div?
-- If adding dragging stuff, consider thinking about 'update' function for 
-  quadtree!
+- If adding dragging stuff, consider thinking about 'update' function for QT 
 - make highlighting better - better if keep track from UI manager?
 */
 
 /* mini-todo
-- move event handling stuff to UI handler!
-  UI handler could track list of main view changes
-  Can just be list, nothing fancy
-  Last element is current main view 
-  Also change name to 'ui manager'?
 - allow deleting
   just remove highlighted thing by id!
 - allow dragging
@@ -39,6 +32,7 @@
   maybe adding dragging to view would make this easier?
   add handle-drag fns?
   drag view if main view, otherwise drag rect
+- move elements into their own files? in an 'elements' folder?
 */
 
 //var WIDTH  = window.innerWidth,
@@ -80,44 +74,15 @@ var vr2 = new ViewRect({x: 0, y: 0, w: 50, h: 50,
 qt.insert(vr);
 qt.insert(vr2);
 
-// main view
-var mv = vr;
-
-// temporary input handling
-window.addEventListener('keydown', function(event) {
-  //event.preventDefault();
-  requestAnimFrame(animate);
-  switch (event.keyCode) {
-  case 37: mv.translate(-1,  0); break; // left
-  case 38: mv.translate( 0, -1); break; // up
-  case 39: mv.translate( 1,  0); break; // right
-  case 40: mv.translate( 0,  1); break; // down
-  }
-}, false);
-
-// if change to canvas-only event, can use mouse coordinates?
-window.addEventListener('wheel', function(event) {
-  //event.preventDefault();
-  requestAnimFrame(animate);
-  //switch (event.wheelDelta > 0) {
-  switch (event.deltaY > 0) {
-  case false: mv.scale(scale_prop);   break; 
-  case true:  mv.scale(1/scale_prop); break; 
-  }
-}, false);
-// add temporary click callback
-stage.click = function(e) {
-  //event.preventDefault();
-  requestAnimFrame(animate);
-  mv.handle_click({x:e.global.x, y:e.global.y}, mv.view, canvas_rect);
-};
+// UI manager
+var UI = new UIManager(vr);
 
 requestAnimFrame(animate);
 function animate() {
   //requestAnimFrame(animate);
 
   vr.clear();
-  vr.render(mv.view, canvas_rect, {}, true);
+  vr.render(UI.mv.view, canvas_rect, {}, true);
   
   // render the stage
   renderer.render(stage);
