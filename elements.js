@@ -15,7 +15,7 @@
 
 var size_thresh = 3;
 var render_limit = 1; // number of times to render anys ViewRects
-var trans_prop = 0.1;
+var trans_prop = 0.015;
 var scale_prop = 1.25;
 
 function Rect(args) {
